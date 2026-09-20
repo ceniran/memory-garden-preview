@@ -21,6 +21,7 @@ let grassTufts = [];
 let selectedDate = null;
 let startTime = performance.now();
 let frame = 0;
+let calendarStart = new Date('2025-10-27T00:00:00Z');
 
 function random() {
   seed |= 0;
@@ -70,6 +71,55 @@ function makeMemories() {
   return sorted;
 }
 
+function hashText(value) {
+  let hash = 2166136261;
+  for (const character of String(value)) {
+    hash ^= character.codePointAt(0);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function makeRealMemories(items) {
+  const dated = items
+    .map(item => ({ ...item, timestamp: Date.parse(item.occurred_at || '') }))
+    .filter(item => item.id && Number.isFinite(item.timestamp));
+  const latest = dated.reduce((value, item) => Math.max(value, item.timestamp), Date.now());
+  const end = new Date(latest);
+  end.setUTCHours(0, 0, 0, 0);
+  calendarStart = new Date(end);
+  calendarStart.setUTCDate(calendarStart.getUTCDate() - 363);
+  const startTimeValue = calendarStart.getTime();
+  const result = dated
+    .map(item => {
+      const idSeed = hashText(item.id);
+      const weight = Math.min(1, Math.max(0, Number(item.weight) || .5));
+      const dayIndex = Math.floor((new Date(item.timestamp).setUTCHours(0, 0, 0, 0) - startTimeValue) / 86400000);
+      return {
+        id: item.id,
+        date: dateKey(new Date(item.timestamp)),
+        dayIndex,
+        depth: weight,
+        type: TYPES[item.visual_type] ? item.visual_type : 'shared',
+        flowerStyle: idSeed % 3,
+        weight,
+        x: .04 + ((idSeed % 10007) / 10006) * .92,
+        sway: ((idSeed >>> 8) % 6283) / 1000,
+        leafCount: (idSeed >>> 16) % 3,
+        title: String(item.title || '一段记忆').slice(0, 160)
+      };
+    })
+    .filter(memory => memory.dayIndex >= 0 && memory.dayIndex < 364)
+    .sort((a, b) => a.weight - b.weight);
+  result.forEach(memory => {
+    const neighbors = result.filter(candidate =>
+      Math.abs(candidate.x - memory.x) < .075 && Math.abs(candidate.depth - memory.depth) < .085
+    ).length - 1;
+    memory.density = Math.min(1, neighbors / 8);
+  });
+  return result;
+}
+
 function makeGrassTufts() {
   return memories
     .filter((memory, index) => {
@@ -108,7 +158,7 @@ function buildCalendar() {
   calendar.replaceChildren();
   const counts = new Map();
   memories.forEach(memory => counts.set(memory.date, (counts.get(memory.date) || 0) + 1));
-  const start = new Date('2025-10-27T00:00:00Z');
+  const start = calendarStart;
   for (let index = 0; index < 364; index += 1) {
     const date = new Date(start);
     date.setUTCDate(start.getUTCDate() + index);
@@ -431,10 +481,33 @@ document.querySelector('#regrow').addEventListener('click', () => {
   startGrowth(memories);
 });
 
+async function initialize() {
+  const endpoint = document.querySelector('meta[name="garden-data-source"]')?.content;
+  const allowSynthetic = document.querySelector('meta[name="garden-allow-synthetic"]')?.content !== 'false';
+  try {
+    if (!endpoint) throw new Error('no_real_data_endpoint');
+    const response = await fetch(endpoint, { headers: { Accept: 'application/json' }, credentials: 'same-origin' });
+    if (!response.ok) throw new Error(`garden_data_${response.status}`);
+    const payload = await response.json();
+    memories = makeRealMemories(Array.isArray(payload.memories) ? payload.memories : []);
+    memoryLabel.textContent = memories.length
+      ? `已从只读记忆接口长出 ${memories.length} 朵花。点击日期查看当天的记忆。`
+      : '真实记忆已经接通，只是这一年还没有可显示的花。';
+  } catch (error) {
+    if (!allowSynthetic) {
+      memories = [];
+      memoryLabel.textContent = '真实记忆暂时没有接通；花田没有使用演示数据代替。';
+      console.error(error);
+    } else {
+      memories = makeMemories();
+    }
+  }
+  grassTufts = makeGrassTufts();
+  buildCalendar();
+  resizeCanvas();
+  startGrowth(memories);
+  requestAnimationFrame(draw);
+}
+
 window.addEventListener('resize', resizeCanvas);
-memories = makeMemories();
-grassTufts = makeGrassTufts();
-buildCalendar();
-resizeCanvas();
-startGrowth(memories);
-requestAnimationFrame(draw);
+initialize();
