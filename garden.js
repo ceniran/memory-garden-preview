@@ -135,12 +135,12 @@ function flowerPath(x, ground, height, color, phase, highlighted, progress, scal
     const leafY = ground - stemHeight * fraction;
     const leafX = x + sway * fraction;
     const side = leaf % 2 ? 1 : -1;
-    drawLeaf(leafX, leafY, side, (.38 + depth * .42) * scale, phase + leaf, .38 + depth * .55);
+    drawLeaf(leafX, leafY, side, (.3 + depth * .28) * scale, phase + leaf, .38 + depth * .55);
   }
 
   if (progress < .72) return;
   const bloom = Math.min(1, (progress - .72) / .28);
-  const radius = (highlighted ? 4.2 : 2.5 + depth * 1.8) * bloom * scale;
+  const radius = (highlighted ? 3.4 : 2.15 + depth * 1.05) * bloom * scale;
   for (let petal = 0; petal < 5; petal += 1) {
     const angle = petal / 5 * Math.PI * 2 + phase;
     context.fillStyle = color;
@@ -180,14 +180,13 @@ function draw(now) {
     const highlighted = selectedDate === memory.date;
     const dimmed = selectedDate && !highlighted;
     const depth = memory.depth;
-    const scale = .38 + depth * .9;
-    const perspectiveWidth = .34 + depth * .72;
+    const scale = .4 + depth * .46;
     context.save();
     context.globalAlpha = dimmed ? .055 : highlighted ? 1 : .22 + depth * .68;
     const progress = Math.min(1, Math.max(0, (elapsed - index * 3) / 850));
-    const x = width * .5 + (memory.x - .5) * width * perspectiveWidth;
+    const x = memory.x * width;
     const localGround = height * (.47 + depth * .4) + Math.sin(index * 1.7) * (4 + depth * 14);
-    const flowerHeight = (22 + memory.weight * 72) * scale;
+    const flowerHeight = (18 + memory.weight * 62) * scale;
     flowerPath(x, localGround, flowerHeight, TYPES[memory.type].color, memory.sway,
       highlighted, progress, scale, memory.leafCount, depth);
     context.restore();
