@@ -59,19 +59,31 @@ function makeMemories() {
       });
     }
   }
-  return result.sort((a, b) => a.weight - b.weight);
+  const sorted = result.sort((a, b) => a.weight - b.weight);
+  sorted.forEach(memory => {
+    const neighbors = sorted.filter(candidate =>
+      Math.abs(candidate.x - memory.x) < .075 && Math.abs(candidate.depth - memory.depth) < .085
+    ).length - 1;
+    memory.density = Math.min(1, neighbors / 8);
+  });
+  return sorted;
 }
 
 function makeGrassTufts() {
-  return Array.from({ length: 18 }, (_, index) => {
-    const x = .035 + ((index * 67) % 91) / 100;
-    const depth = .18 + ((index * 37) % 77) / 100;
-    const memory = memories.reduce((nearest, candidate) => {
-      const distance = (candidate.x - x) ** 2 + (candidate.depth - depth) ** 2 * .42;
-      return !nearest || distance < nearest.distance ? { memory: candidate, distance } : nearest;
-    }, null).memory;
-    return { x, depth, memory, blades: 2 + index % 3, phase: index * .83 };
-  });
+  return memories
+    .filter((memory, index) => {
+      const chance = ((memory.dayIndex * 37 + index * 17) % 101) / 100;
+      return chance < .025 + memory.density * .14;
+    })
+    .slice(0, 36)
+    .map((memory, index) => ({
+      x: Math.max(.03, Math.min(.97, memory.x + (((index * 29) % 9) - 4) * .003)),
+      depth: memory.depth,
+      density: memory.density,
+      memory,
+      blades: 2 + Math.round(memory.density * 2),
+      phase: index * .83
+    }));
 }
 
 function makeGrowthEvents(items) {
@@ -160,8 +172,9 @@ function drawGrass(width, height, elapsed) {
     if (!grassProgress) return;
     const ground = height * (.57 + tuft.depth * .3);
     const breeze = reducedMotion ? 0 : Math.sin(frame * .011 + tuft.phase) * (.45 + tuft.depth * .5);
-    context.strokeStyle = `rgba(55, 117, 68, ${grassProgress * (.13 + tuft.depth * .27)})`;
-    context.fillStyle = `rgba(69, 132, 76, ${grassProgress * (.11 + tuft.depth * .22)})`;
+    const densityAlpha = .48 + tuft.density * .52;
+    context.strokeStyle = `rgba(55, 117, 68, ${grassProgress * densityAlpha * (.13 + tuft.depth * .27)})`;
+    context.fillStyle = `rgba(69, 132, 76, ${grassProgress * densityAlpha * (.11 + tuft.depth * .22)})`;
     context.lineWidth = .48 + tuft.depth * .32;
     for (let blade = 0; blade < tuft.blades; blade += 1) {
       const centered = blade - (tuft.blades - 1) / 2;
@@ -229,7 +242,7 @@ function flowerPath(x, ground, height, color, phase, highlighted, progress, scal
 }
 
 function drawLocalHaze(width, height, elapsed) {
-  for (let index = 0; index < memories.length; index += 6) {
+  for (let index = 0; index < memories.length; index += 4) {
     const memory = memories[index];
     const depth = memory.depth;
     const progress = growthProgress(memory, height, elapsed);
@@ -238,10 +251,11 @@ function drawLocalHaze(width, height, elapsed) {
     const dimmed = selectedDate && memory.date !== selectedDate;
     const x = memory.x * width;
     const y = flowerGround(memory, height);
-    const patchWidth = (24 + depth * 48) * (.72 + hazeProgress * .28);
-    const patchHeight = (7 + depth * 12) * (.72 + hazeProgress * .28);
+    const densityScale = .62 + memory.density * .58;
+    const patchWidth = (24 + depth * 48) * densityScale * (.72 + hazeProgress * .28);
+    const patchHeight = (7 + depth * 12) * densityScale * (.72 + hazeProgress * .28);
     context.save();
-    context.globalAlpha = hazeProgress * (dimmed ? .08 : 1);
+    context.globalAlpha = hazeProgress * (.38 + memory.density * .72) * (dimmed ? .08 : 1);
     context.translate(x, y);
     context.scale(patchWidth, patchHeight);
     const haze = context.createRadialGradient(0, 0, 0, 0, 0, 1);
