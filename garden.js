@@ -158,6 +158,7 @@ function drawLeaf(x, y, side, scale, angle, alpha) {
 }
 
 function flowerPath(x, ground, height, color, phase, highlighted, progress, scale, leafCount, depth) {
+  if (progress <= .015) return;
   const stemHeight = height * progress;
   const top = ground - stemHeight;
   const sway = Math.sin(frame * .014 + phase) * (reducedMotion ? 0 : 2.2 * scale);
@@ -194,15 +195,20 @@ function flowerPath(x, ground, height, color, phase, highlighted, progress, scal
   context.fill();
 }
 
-function drawLocalHaze(width, height) {
-  for (let index = 0; index < memories.length; index += 18) {
+function drawLocalHaze(width, height, elapsed) {
+  for (let index = 0; index < memories.length; index += 6) {
     const memory = memories[index];
     const depth = memory.depth;
+    const progress = growthProgress(memory, height, elapsed);
+    const hazeProgress = Math.min(1, Math.max(0, (progress - .58) / .42));
+    if (!hazeProgress) continue;
+    const dimmed = selectedDate && memory.date !== selectedDate;
     const x = memory.x * width;
-    const y = height * (.57 + depth * .3);
-    const patchWidth = 42 + depth * 72;
-    const patchHeight = 10 + depth * 17;
+    const y = flowerGround(memory, height);
+    const patchWidth = (24 + depth * 48) * (.72 + hazeProgress * .28);
+    const patchHeight = (7 + depth * 12) * (.72 + hazeProgress * .28);
     context.save();
+    context.globalAlpha = hazeProgress * (dimmed ? .08 : 1);
     context.translate(x, y);
     context.scale(patchWidth, patchHeight);
     const haze = context.createRadialGradient(0, 0, 0, 0, 0, 1);
@@ -288,7 +294,7 @@ function draw(now) {
   const elapsed = reducedMotion ? 99999 : now - startTime;
 
   if (!reducedMotion) drawGrowthRain(width, height, elapsed);
-  drawLocalHaze(width, height);
+  drawLocalHaze(width, height, elapsed);
 
   memories.forEach((memory, index) => {
     const highlighted = selectedDate === memory.date;
