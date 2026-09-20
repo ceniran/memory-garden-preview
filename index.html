@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#f4f5ef" />
+    <title>我们的记忆花田 · 简易原型</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="garden-shell">
+      <header class="intro">
+        <p class="eyebrow">CAIRN × XIAORAN · MEMORY GARDEN</p>
+        <div class="heading-row">
+          <div>
+            <h1>我们的记忆花田</h1>
+            <p id="garden-caption">日子落进土地，慢慢长成我们共同生活过的样子。</p>
+          </div>
+          <button id="regrow" type="button" aria-label="重新生长花田">重新生长</button>
+        </div>
+      </header>
+
+      <section class="calendar-panel" aria-label="年度记忆日历">
+        <div class="legend">
+          <span>2026</span>
+          <span class="legend-scale">安静 <i></i><i></i><i></i><i></i> 丰盛</span>
+        </div>
+        <div id="calendar" class="calendar" role="grid" aria-label="点击日期照亮对应记忆小花"></div>
+      </section>
+
+      <section class="garden-panel" aria-live="polite">
+        <canvas id="garden" aria-label="由记忆日期、类型与权重生成的花田"></canvas>
+        <div class="garden-copy">
+          <p id="date-label">全年记忆</p>
+          <p id="memory-label">点击上方日期，看看那一天长出了什么。</p>
+        </div>
+      </section>
+
+      <footer class="types" aria-label="记忆类型图例">
+        <span><i class="relationship"></i>关系</span>
+        <span><i class="shared"></i>共同经历</span>
+        <span><i class="project"></i>项目</span>
+        <span><i class="reflection"></i>反思</span>
+      </footer>
+    </main>
+    <script src="./garden.js"></script>
+  </body>
+</html>
