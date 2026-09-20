@@ -4,7 +4,7 @@ const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const palettes = {
   spring: { sky: ['#fbfcf7', '#e8f3e9'], grass: '#79aa7d', fog: '145, 203, 164' },
   summer: { sky: ['#f8fbf3', '#dcefdc'], grass: '#4f9561', fog: '104, 185, 125' },
-  autumn: { sky: ['#fbf8f0', '#eee2c8'], grass: '#a0854e', fog: '198, 165, 92' },
+  autumn: { sky: ['#faf9ef', '#e7ebc9'], grass: '#7f9858', grassAlt: '#b59a4f', fog: '174, 181, 102' },
   winter: { sky: ['#f8fafb', '#dfe8ec'], grass: '#81969a', fog: '195, 214, 221' }
 };
 const flowerColors = ['#ef9fb4', '#e9bd56', '#78add4', '#ad95d2'];
@@ -65,26 +65,36 @@ function bloom(context, flower, x, y, radius, snowCover) {
   const petals = flower.style === 1 ? 6 : 5;
   for (let petal = 0; petal < petals; petal += 1) {
     const angle = petal / petals * Math.PI * 2 + flower.phase;
+    const petalX = Math.cos(angle) * radius * .82;
+    const petalY = Math.sin(angle) * radius * .68;
     context.fillStyle = flower.color;
     context.beginPath();
-    context.ellipse(Math.cos(angle) * radius * .82, Math.sin(angle) * radius * .68, radius * .72, radius * .48, angle, 0, Math.PI * 2);
+    context.ellipse(petalX, petalY, radius * .72, radius * .48, angle, 0, Math.PI * 2);
     context.fill();
+    if (snowCover > 0 && Math.sin(angle) < .28) {
+      context.save();
+      context.globalAlpha = .62 + snowCover * .38;
+      context.fillStyle = '#fff';
+      context.shadowColor = 'rgba(210, 227, 234, .75)';
+      context.shadowBlur = radius * .38;
+      context.beginPath();
+      context.ellipse(
+        petalX + Math.cos(angle) * radius * .16,
+        petalY + Math.sin(angle) * radius * .16 - radius * .08,
+        radius * (.46 + snowCover * .08),
+        radius * (.2 + snowCover * .05),
+        angle,
+        0,
+        Math.PI * 2
+      );
+      context.fill();
+      context.restore();
+    }
   }
   context.fillStyle = '#f4dda0';
   context.beginPath();
   context.arc(0, 0, radius * .42, 0, Math.PI * 2);
   context.fill();
-  if (snowCover > 0) {
-    context.globalAlpha = .7 + snowCover * .25;
-    context.fillStyle = '#fff';
-    context.shadowColor = 'rgba(213, 228, 235, .75)';
-    context.shadowBlur = 3;
-    context.beginPath();
-    context.ellipse(-radius * .12, -radius * .5, radius * (1.02 + snowCover * .12), radius * (.2 + snowCover * .09), -.05, Math.PI, Math.PI * 2);
-    context.fill();
-    context.shadowBlur = 0;
-    context.globalAlpha = 1;
-  }
   context.restore();
 }
 
@@ -106,7 +116,7 @@ function drawScene(scene, time) {
     const seasonScale = season === 'spring' ? .82 : season === 'winter' ? .88 : 1;
     const radius = (3.8 + flower.depth * 3.4) * flower.scale * seasonScale;
 
-    context.strokeStyle = palette.grass;
+    context.strokeStyle = season === 'autumn' && index % 3 === 0 ? palette.grassAlt : palette.grass;
     context.globalAlpha = .42 + flower.depth * .38;
     context.lineWidth = .8 + flower.depth * .55;
     context.beginPath();
