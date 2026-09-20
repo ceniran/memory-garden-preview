@@ -45,10 +45,12 @@ function makeMemories() {
       result.push({
         id: `${index}-${item}`,
         date: dateKey(date),
+        depth: index / 363,
         type,
         weight: .25 + random() * .75,
         x: .04 + random() * .92,
         sway: random() * Math.PI * 2,
+        leafCount: 1 + Math.floor(random() * 5),
         title: ['一起留下的片刻', '今天长出的新理解', '慢慢完成的一件事', '又靠近了一点'][Math.floor(random() * 4)]
       });
     }
@@ -100,21 +102,45 @@ function resizeCanvas() {
   context.setTransform(ratio, 0, 0, ratio, 0, 0);
 }
 
-function flowerPath(x, ground, height, color, phase, highlighted, progress) {
+function drawLeaf(x, y, side, scale, angle, alpha) {
+  context.save();
+  context.translate(x, y);
+  context.rotate(side * (.5 + angle * .18));
+  context.scale(side * scale, scale);
+  context.globalAlpha *= alpha;
+  context.fillStyle = '#5e9a69';
+  context.beginPath();
+  context.moveTo(0, 0);
+  context.quadraticCurveTo(7, -5, 13, 0);
+  context.quadraticCurveTo(7, 5, 0, 0);
+  context.fill();
+  context.restore();
+}
+
+function flowerPath(x, ground, height, color, phase, highlighted, progress, scale, leafCount, depth) {
   const stemHeight = height * progress;
   const top = ground - stemHeight;
-  const sway = Math.sin(frame * .018 + phase) * (reducedMotion ? 0 : 1.8);
+  const sway = Math.sin(frame * .014 + phase) * (reducedMotion ? 0 : 2.2 * scale);
   context.lineCap = 'round';
-  context.strokeStyle = highlighted ? '#285a3a' : 'rgba(49, 112, 67, .68)';
-  context.lineWidth = highlighted ? 1.7 : 1.05;
+  context.strokeStyle = highlighted ? '#285a3a' : `rgba(49, 112, 67, ${.32 + depth * .5})`;
+  context.lineWidth = (highlighted ? 1.8 : .8 + depth * .65) * scale;
   context.beginPath();
   context.moveTo(x, ground);
   context.quadraticCurveTo(x - sway, ground - stemHeight * .52, x + sway, top);
   context.stroke();
 
+  const visibleLeaves = Math.floor(leafCount * Math.min(1, progress * 1.3));
+  for (let leaf = 0; leaf < visibleLeaves; leaf += 1) {
+    const fraction = .22 + leaf / Math.max(1, leafCount) * .5;
+    const leafY = ground - stemHeight * fraction;
+    const leafX = x + sway * fraction;
+    const side = leaf % 2 ? 1 : -1;
+    drawLeaf(leafX, leafY, side, (.38 + depth * .42) * scale, phase + leaf, .38 + depth * .55);
+  }
+
   if (progress < .72) return;
   const bloom = Math.min(1, (progress - .72) / .28);
-  const radius = (highlighted ? 3.9 : 2.7) * bloom;
+  const radius = (highlighted ? 4.2 : 2.5 + depth * 1.8) * bloom * scale;
   for (let petal = 0; petal < 5; petal += 1) {
     const angle = petal / 5 * Math.PI * 2 + phase;
     context.fillStyle = color;
@@ -132,25 +158,38 @@ function draw(now) {
   const width = canvas.clientWidth;
   const height = canvas.clientHeight;
   context.clearRect(0, 0, width, height);
-  const ground = height * .86;
   const elapsed = reducedMotion ? 99999 : now - startTime;
 
-  const mist = context.createRadialGradient(width * .5, ground, 10, width * .5, ground, width * .58);
-  mist.addColorStop(0, 'rgba(125, 184, 126, .18)');
-  mist.addColorStop(1, 'rgba(125, 184, 126, 0)');
-  context.fillStyle = mist;
-  context.fillRect(0, ground - 120, width, 160);
+  const sky = context.createLinearGradient(0, height * .25, 0, height);
+  sky.addColorStop(0, 'rgba(250,252,247,0)');
+  sky.addColorStop(.55, 'rgba(216,233,213,.13)');
+  sky.addColorStop(1, 'rgba(161,203,159,.2)');
+  context.fillStyle = sky;
+  context.fillRect(0, 0, width, height);
+
+  for (let layer = 0; layer < 4; layer += 1) {
+    const y = height * (.48 + layer * .12);
+    const mist = context.createRadialGradient(width * .5, y, 8, width * .5, y, width * (.34 + layer * .1));
+    mist.addColorStop(0, `rgba(112, 174, 119, ${.055 + layer * .028})`);
+    mist.addColorStop(1, 'rgba(125, 184, 126, 0)');
+    context.fillStyle = mist;
+    context.fillRect(0, y - 64, width, 130);
+  }
 
   memories.forEach((memory, index) => {
     const highlighted = selectedDate === memory.date;
     const dimmed = selectedDate && !highlighted;
+    const depth = memory.depth;
+    const scale = .38 + depth * .9;
+    const perspectiveWidth = .34 + depth * .72;
     context.save();
-    context.globalAlpha = dimmed ? .09 : highlighted ? 1 : .58;
+    context.globalAlpha = dimmed ? .055 : highlighted ? 1 : .22 + depth * .68;
     const progress = Math.min(1, Math.max(0, (elapsed - index * 3) / 850));
-    const x = memory.x * width;
-    const localGround = ground + Math.sin(index * 1.7) * 20;
-    const flowerHeight = 28 + memory.weight * 96;
-    flowerPath(x, localGround, flowerHeight, TYPES[memory.type].color, memory.sway, highlighted, progress);
+    const x = width * .5 + (memory.x - .5) * width * perspectiveWidth;
+    const localGround = height * (.47 + depth * .4) + Math.sin(index * 1.7) * (4 + depth * 14);
+    const flowerHeight = (22 + memory.weight * 72) * scale;
+    flowerPath(x, localGround, flowerHeight, TYPES[memory.type].color, memory.sway,
+      highlighted, progress, scale, memory.leafCount, depth);
     context.restore();
   });
 
