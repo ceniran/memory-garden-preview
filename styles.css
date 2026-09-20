@@ -10,6 +10,10 @@
   --duration-fast: 250ms;
   --duration-very-slow: 500ms;
   --ease-smooth-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --acc-expand: 250ms;
+  --acc-collapse: 250ms;
+  --acc-chevron: 250ms;
+  --acc-ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 * { box-sizing: border-box; }
@@ -85,6 +89,54 @@ h1 {
   box-shadow: 0 18px 50px rgba(64, 87, 65, .07);
   backdrop-filter: blur(14px);
 }
+.calendar-summary { display: flex; width: 100%; align-items: center; justify-content: space-between; padding: 0; border: 0; color: var(--ink); background: transparent; text-align: left; cursor: pointer; }
+.calendar-summary > span:first-child { display: grid; gap: 3px; }
+.calendar-summary strong { font-family: Georgia, "Songti SC", serif; font-size: 17px; font-weight: 520; }
+.calendar-summary small { color: var(--muted); font-size: 9px; font-weight: 500; }
+.calendar-summary svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; }
+.month-preview { display: grid; grid-template-columns: repeat(31, minmax(0, 1fr)); gap: 2px; margin-top: 13px; }
+.month-preview i { height: 8px; border-radius: 3px; background: #edf1ea; }
+.month-preview i[data-level="1"] { background: var(--green-1); }
+.month-preview i[data-level="2"] { background: var(--green-2); }
+.month-preview i[data-level="3"] { background: var(--green-3); }
+.month-preview i[data-level="4"] { background: var(--green-4); }
+
+/* grid-template-rows 0fr → 1fr gives a clean height animation
+   with no JS measurement; the inner element clips overflow. */
+.t-acc-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--acc-collapse) var(--acc-ease);
+}
+.t-acc[data-open="true"] .t-acc-panel {
+  grid-template-rows: 1fr;
+  transition: grid-template-rows var(--acc-expand) var(--acc-ease);
+}
+.t-acc-panel-inner {
+  overflow: hidden;
+  opacity: 0;
+  filter: blur(2px);
+  transition:
+    opacity var(--acc-collapse) var(--acc-ease),
+    filter var(--acc-collapse) var(--acc-ease);
+}
+.t-acc[data-open="true"] .t-acc-panel-inner {
+  opacity: 1;
+  filter: blur(0);
+  transition:
+    opacity var(--acc-expand) var(--acc-ease),
+    filter var(--acc-expand) var(--acc-ease);
+}
+.t-acc-chevron {
+  display: inline-flex;
+  transform: scaleY(1);
+  transform-origin: center;
+  transition: transform var(--acc-chevron) var(--acc-ease);
+}
+.t-acc-chevron path { vector-effect: non-scaling-stroke; }
+.t-acc[data-open="true"] .t-acc-chevron { transform: scaleY(-1); }
+.t-acc[data-open="true"] .month-preview { display: none; }
+.t-acc-panel-inner > .month-nav { margin-top: 12px; }
 
 .legend {
   display: flex;
@@ -190,4 +242,7 @@ h1 {
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 1ms !important; animation-delay: 0ms !important; transition-duration: 1ms !important; }
+  .t-acc-panel, .t-acc-panel-inner, .t-acc-chevron {
+    transition: none !important;
+  }
 }

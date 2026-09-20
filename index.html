@@ -21,19 +21,24 @@
         </div>
       </header>
 
-      <section class="calendar-panel" aria-label="年度记忆日历">
-        <div class="legend month-nav">
-          <button id="previous-month" type="button" aria-label="上个月">←</button>
-          <strong id="month-label">读取月份</strong>
-          <button id="next-month" type="button" aria-label="下个月">→</button>
+      <section class="calendar-panel t-acc" data-open="false" aria-label="月度记忆日历">
+        <button class="calendar-summary t-acc-head" id="calendar-toggle" type="button" aria-expanded="false" aria-controls="calendar-detail">
+          <span><strong id="month-label">读取月份</strong><small>点击展开月历</small></span>
+          <span class="t-acc-chevron" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M4 6.5L8 10.5L12 6.5"/></svg></span>
+        </button>
+        <div id="month-preview" class="month-preview" aria-label="本月记忆分布预览"></div>
+        <div class="t-acc-panel" id="calendar-detail"><div class="t-acc-panel-inner">
+          <div class="legend month-nav">
+            <button id="previous-month" type="button" aria-label="上个月">←</button>
+            <span class="legend-scale">安静 <i></i><i></i><i></i><i></i> 丰盛</span>
+            <button id="next-month" type="button" aria-label="下个月">→</button>
+          </div>
+          <div class="calendar-weekdays" aria-hidden="true">
+            <span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span>
+          </div>
+          <div id="calendar" class="calendar" role="grid" aria-label="点击日期照亮对应记忆小花"></div>
         </div>
-        <div class="calendar-weekdays" aria-hidden="true">
-          <span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span>
         </div>
-        <div class="legend calendar-scale">
-          <span class="legend-scale">安静 <i></i><i></i><i></i><i></i> 丰盛</span>
-        </div>
-        <div id="calendar" class="calendar" role="grid" aria-label="点击日期照亮对应记忆小花"></div>
       </section>
 
       <section class="garden-panel" aria-live="polite">
@@ -52,6 +57,6 @@
         <span><i class="reflection"></i>反思</span>
       </footer>
     </main>
-    <script src="./garden.js?v=24"></script>
+    <script src="./garden.js?v=25"></script>
   </body>
 </html>

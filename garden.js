@@ -15,6 +15,9 @@ const memoryLabel = document.querySelector('#memory-label');
 const monthLabel = document.querySelector('#month-label');
 const previousMonthButton = document.querySelector('#previous-month');
 const nextMonthButton = document.querySelector('#next-month');
+const monthPreview = document.querySelector('#month-preview');
+const calendarDisclosure = document.querySelector('.calendar-panel.t-acc');
+const calendarToggle = document.querySelector('#calendar-toggle');
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 let seed = 20260920;
@@ -170,6 +173,14 @@ function buildCalendar() {
   const gridStart = new Date(first);
   gridStart.setUTCDate(first.getUTCDate() - leading);
   monthLabel.textContent = `${year}年${month + 1}月`;
+  monthPreview.replaceChildren();
+  const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    const key = dateKey(new Date(Date.UTC(year, month, day)));
+    const mark = document.createElement('i');
+    mark.dataset.level = String(Math.min(4, counts.get(key) || 0));
+    monthPreview.append(mark);
+  }
   calendar.classList.remove('is-changing');
   void calendar.offsetWidth;
   calendar.classList.add('is-changing');
@@ -518,6 +529,12 @@ document.querySelector('#regrow').addEventListener('click', () => {
 });
 previousMonthButton.addEventListener('click', () => changeMonth(-1));
 nextMonthButton.addEventListener('click', () => changeMonth(1));
+calendarToggle.addEventListener('click', () => {
+  const open = calendarDisclosure.getAttribute('data-open') === 'true';
+  calendarDisclosure.setAttribute('data-open', String(!open));
+  calendarToggle.setAttribute('aria-expanded', String(!open));
+  calendarToggle.querySelector('small').textContent = open ? '点击展开月历' : '点击收起月历';
+});
 
 async function initialize() {
   const endpoint = document.querySelector('meta[name="garden-data-source"]')?.content;
