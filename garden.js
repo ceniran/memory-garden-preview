@@ -297,7 +297,7 @@ function flowerPath(x, ground, height, color, phase, highlighted, progress, scal
 
   if (progress < .72) return;
   const bloom = Math.min(1, (progress - .72) / .28);
-  const radius = (highlighted ? 5 : 2.9 + depth * 1.15) * bloom * scale;
+  const radius = (highlighted ? 5.7 : 3.35 + depth * 1.3) * bloom * scale;
   if (flowerStyle === 0) drawRoundBloom(x + sway, top, radius, color, phase);
   if (flowerStyle === 1) drawBezierBloom(x + sway, top, radius * .72, color, phase);
   if (flowerStyle === 2) drawBellBloom(x + sway, top, radius * .9, color, phase);
@@ -413,7 +413,7 @@ function draw(now) {
     const x = memory.x * width;
     const localGround = flowerGround(memory, height);
     const progress = growthProgress(memory, height, elapsed);
-    const flowerHeight = (9 + memory.weight * 23) * scale;
+    const flowerHeight = (7 + memory.weight * 17) * scale;
     flowerPath(x, localGround, flowerHeight, TYPES[memory.type].color, memory.sway,
       highlighted, progress, scale, memory.leafCount, depth, memory.flowerStyle);
     context.restore();
