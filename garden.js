@@ -63,12 +63,15 @@ function makeMemories() {
 }
 
 function makeGrassTufts() {
-  return Array.from({ length: 18 }, (_, index) => ({
-    x: .035 + ((index * 67) % 91) / 100,
-    depth: .18 + ((index * 37) % 77) / 100,
-    blades: 2 + index % 3,
-    phase: index * .83
-  }));
+  return Array.from({ length: 18 }, (_, index) => {
+    const x = .035 + ((index * 67) % 91) / 100;
+    const depth = .18 + ((index * 37) % 77) / 100;
+    const memory = memories.reduce((nearest, candidate) => {
+      const distance = (candidate.x - x) ** 2 + (candidate.depth - depth) ** 2 * .42;
+      return !nearest || distance < nearest.distance ? { memory: candidate, distance } : nearest;
+    }, null).memory;
+    return { x, depth, memory, blades: 2 + index % 3, phase: index * .83 };
+  });
 }
 
 function makeGrowthEvents(items) {
@@ -148,20 +151,23 @@ function drawLeaf(x, y, side, scale, angle, alpha) {
   context.restore();
 }
 
-function drawGrass(width, height) {
+function drawGrass(width, height, elapsed) {
   context.save();
   context.lineCap = 'round';
   grassTufts.forEach(tuft => {
+    const flowerProgress = growthProgress(tuft.memory, height, elapsed);
+    const grassProgress = Math.min(1, Math.max(0, (flowerProgress - .58) / .42));
+    if (!grassProgress) return;
     const ground = height * (.57 + tuft.depth * .3);
     const breeze = reducedMotion ? 0 : Math.sin(frame * .011 + tuft.phase) * (.45 + tuft.depth * .5);
-    context.strokeStyle = `rgba(55, 117, 68, ${.13 + tuft.depth * .27})`;
-    context.fillStyle = `rgba(69, 132, 76, ${.11 + tuft.depth * .22})`;
+    context.strokeStyle = `rgba(55, 117, 68, ${grassProgress * (.13 + tuft.depth * .27)})`;
+    context.fillStyle = `rgba(69, 132, 76, ${grassProgress * (.11 + tuft.depth * .22)})`;
     context.lineWidth = .48 + tuft.depth * .32;
     for (let blade = 0; blade < tuft.blades; blade += 1) {
       const centered = blade - (tuft.blades - 1) / 2;
       const offset = centered * 1.35 + Math.sin(tuft.phase + blade) * .8;
       const lean = centered * 2.7 + Math.sin(tuft.phase * 1.7 + blade) * 1.8 + breeze;
-      const bladeHeight = 3.5 + tuft.depth * 6 + (blade % 2) * 1.6;
+      const bladeHeight = (3.5 + tuft.depth * 6 + (blade % 2) * 1.6) * grassProgress;
       const baseX = tuft.x * width + offset;
       const tipX = baseX + lean;
       const tipY = ground - bladeHeight;
@@ -174,6 +180,7 @@ function drawGrass(width, height) {
         context.translate(baseX + lean * .48, ground - bladeHeight * .48);
         context.rotate(-.45 + lean * .04);
         context.beginPath();
+        context.scale(grassProgress, grassProgress);
         context.ellipse(0, 0, 1.9 + tuft.depth, .65 + tuft.depth * .25, 0, 0, Math.PI * 2);
         context.fill();
         context.restore();
@@ -318,7 +325,7 @@ function draw(now) {
 
   if (!reducedMotion) drawGrowthRain(width, height, elapsed);
   drawLocalHaze(width, height, elapsed);
-  drawGrass(width, height);
+  drawGrass(width, height, elapsed);
 
   memories.forEach((memory, index) => {
     const highlighted = selectedDate === memory.date;
