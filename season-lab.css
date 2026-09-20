@@ -1,0 +1,50 @@
+:root {
+  --duration-quick: 150ms;
+  --duration-fast: 250ms;
+  --ease-smooth-out: cubic-bezier(.22, 1, .36, 1);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: #28342e;
+  background: linear-gradient(180deg, #f7f8f4, #edf2ef);
+  font-family: ui-serif, "Songti SC", "Noto Serif SC", serif;
+}
+
+main { width: min(1080px, 100%); margin: 0 auto; padding: 56px 24px 72px; }
+header { margin-bottom: 28px; }
+.eyebrow { margin: 0 0 10px; color: #799084; font: 600 11px/1.2 ui-sans-serif, system-ui; letter-spacing: .18em; }
+h1 { margin: 0; font-size: clamp(32px, 6vw, 54px); font-weight: 520; letter-spacing: -.04em; }
+header > p:last-child { margin: 12px 0 0; color: #6d7b74; font-size: 15px; }
+
+.season-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.season-card {
+  position: relative;
+  min-height: 360px;
+  overflow: hidden;
+  border: 1px solid rgba(91, 111, 101, .14);
+  border-radius: 26px;
+  background: #f6f8f4;
+  box-shadow: 0 18px 45px rgba(59, 78, 68, .08);
+  transition: transform var(--duration-fast) var(--ease-smooth-out), box-shadow var(--duration-fast) var(--ease-smooth-out);
+}
+.season-card:hover { transform: translateY(-3px); box-shadow: 0 23px 52px rgba(59, 78, 68, .12); }
+.season-card canvas { display: block; width: 100%; height: 360px; }
+.card-copy { position: absolute; z-index: 2; top: 20px; left: 22px; display: grid; pointer-events: none; }
+.card-copy strong { font-size: 28px; font-weight: 520; }
+.card-copy span { margin-top: 3px; color: rgba(42, 57, 49, .62); font-size: 12px; }
+.winter .card-copy { color: #394852; }
+
+@media (max-width: 720px) {
+  main { padding: 36px 14px 48px; }
+  .season-grid { grid-template-columns: 1fr; gap: 14px; }
+  .season-card, .season-card canvas { min-height: 330px; height: 330px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .season-card { transition: none; }
+  .season-card:hover { transform: none; }
+}

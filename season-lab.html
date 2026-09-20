@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#eef3f5" />
+    <title>记忆花田 · 四季试衣间</title>
+    <link rel="stylesheet" href="./season-lab.css?v=1" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <p class="eyebrow">MEMORY GARDEN · SEASON LAB</p>
+        <h1>四季试衣间</h1>
+        <p>先看同一小片花田在不同季节里的样子；目前冬天已经会落雪、覆雪。</p>
+      </header>
+
+      <section class="season-grid" aria-label="花田四季效果预览">
+        <article class="season-card spring">
+          <div class="card-copy"><strong>春</strong><span>新芽与轻雾</span></div>
+          <canvas data-season="spring" aria-label="春季花田"></canvas>
+        </article>
+        <article class="season-card summer">
+          <div class="card-copy"><strong>夏</strong><span>浓绿与盛放</span></div>
+          <canvas data-season="summer" aria-label="夏季花田"></canvas>
+        </article>
+        <article class="season-card autumn">
+          <div class="card-copy"><strong>秋</strong><span>暖金与低饱和花色</span></div>
+          <canvas data-season="autumn" aria-label="秋季花田"></canvas>
+        </article>
+        <article class="season-card winter">
+          <div class="card-copy"><strong>冬</strong><span>雪落以后，花还在</span></div>
+          <canvas data-season="winter" aria-label="飘雪并覆雪的冬季花田"></canvas>
+        </article>
+      </section>
+    </main>
+    <script src="./season-lab.js?v=1"></script>
+  </body>
+</html>
