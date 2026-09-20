@@ -163,7 +163,7 @@ function flowerPath(x, ground, height, color, phase, highlighted, progress, scal
   const sway = Math.sin(frame * .014 + phase) * (reducedMotion ? 0 : 2.2 * scale);
   context.lineCap = 'round';
   context.strokeStyle = highlighted ? '#285a3a' : `rgba(49, 112, 67, ${.32 + depth * .5})`;
-  context.lineWidth = (highlighted ? 1.8 : .8 + depth * .65) * scale;
+  context.lineWidth = (highlighted ? 2 : .9 + depth * .7) * scale;
   context.beginPath();
   context.moveTo(x, ground);
   context.quadraticCurveTo(x - sway, ground - stemHeight * .52, x + sway, top);
@@ -180,7 +180,7 @@ function flowerPath(x, ground, height, color, phase, highlighted, progress, scal
 
   if (progress < .72) return;
   const bloom = Math.min(1, (progress - .72) / .28);
-  const radius = (highlighted ? 3 : 1.7 + depth * .72) * bloom * scale;
+  const radius = (highlighted ? 4.2 : 2.35 + depth) * bloom * scale;
   for (let petal = 0; petal < 5; petal += 1) {
     const angle = petal / 5 * Math.PI * 2 + phase;
     context.fillStyle = color;
@@ -294,13 +294,13 @@ function draw(now) {
     const highlighted = selectedDate === memory.date;
     const dimmed = selectedDate && !highlighted;
     const depth = memory.depth;
-    const scale = .4 + depth * .46;
+    const scale = .48 + depth * .48;
     context.save();
     context.globalAlpha = dimmed ? .055 : highlighted ? 1 : .22 + depth * .68;
     const x = memory.x * width;
     const localGround = flowerGround(memory, height);
     const progress = growthProgress(memory, height, elapsed);
-    const flowerHeight = (10 + memory.weight * 34) * scale;
+    const flowerHeight = (9 + memory.weight * 23) * scale;
     flowerPath(x, localGround, flowerHeight, TYPES[memory.type].color, memory.sway,
       highlighted, progress, scale, memory.leafCount, depth);
     context.restore();
