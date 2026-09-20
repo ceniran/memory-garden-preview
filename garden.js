@@ -17,7 +17,6 @@ const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 let seed = 20260920;
 let memories = [];
 let growthEvents = [];
-let wholeGardenReplay = false;
 let selectedDate = null;
 let startTime = performance.now();
 let frame = 0;
@@ -62,39 +61,20 @@ function makeMemories() {
   return result.sort((a, b) => a.weight - b.weight);
 }
 
-function dayFor(date, dayIndex) {
-  const items = memories.filter(memory => memory.date === date);
-  return {
-    date,
-    dayIndex,
-    memories: items,
-    x: .08 + ((dayIndex * 47) % 83) / 100,
-    ground: .68 + ((dayIndex * 29) % 16) / 100
-  };
-}
-
-function makeGrowthEvents(days) {
-  const interval = 0;
-  return days.map((day, order) => ({
-    day,
-    delay: 180 + order * interval,
+function makeGrowthEvents(items) {
+  const fullGarden = items.length > 10;
+  return items.map((memory, order) => ({
+    memory,
+    delay: fullGarden
+      ? 140 + ((memory.dayIndex * 97 + order * 53) % 997) / 996 * 5200
+      : 140 + order * 260,
     gravity: .00072 + (order % 4) * .00005,
     drift: ((order % 3) - 1) * 5
   }));
 }
 
-function allDays() {
-  const start = new Date('2025-10-27T00:00:00Z');
-  return Array.from({ length: 364 }, (_, dayIndex) => {
-    const date = new Date(start);
-    date.setUTCDate(start.getUTCDate() + dayIndex);
-    return dayFor(dateKey(date), dayIndex);
-  });
-}
-
-function startGrowth(days) {
-  wholeGardenReplay = days.length > 1;
-  growthEvents = makeGrowthEvents(days);
+function startGrowth(items) {
+  growthEvents = makeGrowthEvents(items);
   startTime = performance.now();
 }
 
@@ -126,8 +106,7 @@ function selectDay(key, button) {
   document.querySelectorAll('.day.is-active').forEach(day => day.classList.remove('is-active'));
   if (selectedDate) button.classList.add('is-active');
   const selected = memories.filter(memory => memory.date === selectedDate);
-  const dayIndex = Number(button.style.getPropertyValue('--order'));
-  startGrowth(selectedDate ? [dayFor(selectedDate, dayIndex)] : allDays());
+  startGrowth(selectedDate ? selected : memories);
   dateLabel.textContent = selectedDate || '全年记忆';
   memoryLabel.textContent = selectedDate
     ? selected.length
@@ -225,10 +204,6 @@ function drawLocalHaze(width, height, elapsed) {
   }
 }
 
-function dayGround(day, height) {
-  return height * day.ground;
-}
-
 function flowerGround(memory, height) {
   return height * (.57 + memory.depth * .3) + Math.sin(memory.sway * 2.1) * (3 + memory.depth * 9);
 }
@@ -257,15 +232,15 @@ function drawGrowthRain(width, height, elapsed) {
   context.save();
   context.lineCap = 'round';
   growthEvents.forEach(event => {
-    const ground = dayGround(event.day, height);
+    const ground = flowerGround(event.memory, height);
     const timing = eventTiming(event, ground);
     const age = elapsed - event.delay;
     if (age < 0 || age >= timing.fallDuration) {
-      drawRipple(event.day.x * width, ground, elapsed - timing.landing);
+      drawRipple(event.memory.x * width, ground, elapsed - timing.landing);
       return;
     }
-    rainingDate = event.day.date;
-    const x = event.day.x * width + event.drift * (1 - age / timing.fallDuration);
+    rainingDate = event.memory.date;
+    const x = event.memory.x * width + event.drift * (1 - age / timing.fallDuration);
     const y = -30 + .5 * event.gravity * age * age;
     const speed = event.gravity * age;
     context.globalAlpha = .2 + Math.min(.42, speed * 120);
@@ -283,14 +258,11 @@ function drawGrowthRain(width, height, elapsed) {
 
 function growthProgress(memory, height, elapsed) {
   if (reducedMotion) return 1;
-  if (wholeGardenReplay) {
-    const raw = Math.min(1, Math.max(0, (elapsed - 1300) / 2200));
-    return raw * raw * (3 - 2 * raw);
-  }
-  const event = growthEvents.find(item => item.day.date === memory.date);
+  const event = growthEvents.find(item => item.memory === memory);
   if (!event) return 1;
-  const { landing } = eventTiming(event, dayGround(event.day, height));
-  return Math.min(1, Math.max(0, (elapsed - landing) / 920));
+  const { landing } = eventTiming(event, flowerGround(memory, height));
+  const raw = Math.min(1, Math.max(0, (elapsed - landing) / 1050));
+  return raw * raw * (3 - 2 * raw);
 }
 
 function draw(now) {
@@ -326,13 +298,13 @@ document.querySelector('#regrow').addEventListener('click', () => {
   selectedDate = null;
   document.querySelectorAll('.day.is-active').forEach(day => day.classList.remove('is-active'));
   dateLabel.textContent = '全年记忆';
-  memoryLabel.textContent = '一场短雨落下后，整片记忆花田会同时重新生长。';
-  startGrowth(allDays());
+  memoryLabel.textContent = '雨正错落落进花田；落在哪里，哪里的记忆花就开始生长。';
+  startGrowth(memories);
 });
 
 window.addEventListener('resize', resizeCanvas);
 memories = makeMemories();
 buildCalendar();
 resizeCanvas();
-startGrowth(allDays());
+startGrowth(memories);
 requestAnimationFrame(draw);
