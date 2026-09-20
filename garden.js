@@ -41,15 +41,17 @@ function makeMemories() {
     const date = new Date(start);
     date.setUTCDate(start.getUTCDate() + index);
     const count = random() < .52 ? 0 : 1 + Math.floor(random() * (random() > .82 ? 3 : 2));
+    const rootX = .04 + random() * .92;
     for (let item = 0; item < count; item += 1) {
       const type = Object.keys(TYPES)[Math.floor(random() * 4)];
       result.push({
         id: `${index}-${item}`,
         date: dateKey(date),
+        dayIndex: index,
         depth: index / 363,
         type,
         weight: .25 + random() * .75,
-        x: .04 + random() * .92,
+        x: Math.max(.035, Math.min(.965, rootX + (item - (count - 1) / 2) * .014)),
         sway: random() * Math.PI * 2,
         leafCount: 1 + Math.floor(random() * 5),
         title: ['一起留下的片刻', '今天长出的新理解', '慢慢完成的一件事', '又靠近了一点'][Math.floor(random() * 4)]
@@ -59,21 +61,38 @@ function makeMemories() {
   return result;
 }
 
-function makeGrowthEvents(items) {
-  return items.map((memory, order) => ({
-    memory,
+function dayFor(date, dayIndex) {
+  const items = memories.filter(memory => memory.date === date);
+  return {
+    date,
+    dayIndex,
+    depth: dayIndex / 363,
+    memories: items,
+    x: items.length ? items.reduce((sum, memory) => sum + memory.x, 0) / items.length : .08 + ((dayIndex * 47) % 83) / 100
+  };
+}
+
+function makeGrowthEvents(days) {
+  return days.map((day, order) => ({
+    day,
     delay: 180 + order * 310,
     gravity: .00072 + (order % 4) * .00005,
     drift: ((order % 3) - 1) * 5
   }));
 }
 
-function recentMemories() {
-  return memories.slice(-8);
+function recentDays() {
+  const start = new Date('2025-10-27T00:00:00Z');
+  return Array.from({ length: 8 }, (_, offset) => {
+    const dayIndex = 356 + offset;
+    const date = new Date(start);
+    date.setUTCDate(start.getUTCDate() + dayIndex);
+    return dayFor(dateKey(date), dayIndex);
+  });
 }
 
-function startGrowth(items) {
-  growthEvents = makeGrowthEvents(items);
+function startGrowth(days) {
+  growthEvents = makeGrowthEvents(days);
   startTime = performance.now();
 }
 
@@ -105,7 +124,8 @@ function selectDay(key, button) {
   document.querySelectorAll('.day.is-active').forEach(day => day.classList.remove('is-active'));
   if (selectedDate) button.classList.add('is-active');
   const selected = memories.filter(memory => memory.date === selectedDate);
-  startGrowth(selectedDate ? selected : recentMemories());
+  const dayIndex = Number(button.style.getPropertyValue('--order'));
+  startGrowth(selectedDate ? [dayFor(selectedDate, dayIndex)] : recentDays());
   dateLabel.textContent = selectedDate || '全年记忆';
   memoryLabel.textContent = selectedDate
     ? selected.length
@@ -197,8 +217,12 @@ function drawLocalHaze(width, height) {
   }
 }
 
-function flowerGround(memory, index, height) {
-  return height * (.57 + memory.depth * .3) + Math.sin(index * 1.7) * (3 + memory.depth * 9);
+function dayGround(day, height) {
+  return height * (.57 + day.depth * .3) + Math.sin(day.dayIndex * 1.7) * (3 + day.depth * 9);
+}
+
+function flowerGround(memory, height) {
+  return dayGround(memory, height);
 }
 
 function drawRipple(x, ground, age) {
@@ -225,16 +249,15 @@ function drawGrowthRain(width, height, elapsed) {
   context.save();
   context.lineCap = 'round';
   growthEvents.forEach(event => {
-    const memoryIndex = memories.indexOf(event.memory);
-    const ground = flowerGround(event.memory, memoryIndex, height);
+    const ground = dayGround(event.day, height);
     const timing = eventTiming(event, ground);
     const age = elapsed - event.delay;
     if (age < 0 || age >= timing.fallDuration) {
-      drawRipple(event.memory.x * width, ground, elapsed - timing.landing);
+      drawRipple(event.day.x * width, ground, elapsed - timing.landing);
       return;
     }
-    rainingDate = event.memory.date;
-    const x = event.memory.x * width + event.drift * (1 - age / timing.fallDuration);
+    rainingDate = event.day.date;
+    const x = event.day.x * width + event.drift * (1 - age / timing.fallDuration);
     const y = -30 + .5 * event.gravity * age * age;
     const speed = event.gravity * age;
     context.globalAlpha = .2 + Math.min(.42, speed * 120);
@@ -252,7 +275,7 @@ function drawGrowthRain(width, height, elapsed) {
 
 function growthProgress(memory, ground, elapsed) {
   if (reducedMotion) return 1;
-  const event = growthEvents.find(item => item.memory === memory);
+  const event = growthEvents.find(item => item.day.date === memory.date);
   if (!event) return 1;
   const { landing } = eventTiming(event, ground);
   return Math.min(1, Math.max(0, (elapsed - landing) / 920));
@@ -275,7 +298,7 @@ function draw(now) {
     context.save();
     context.globalAlpha = dimmed ? .055 : highlighted ? 1 : .22 + depth * .68;
     const x = memory.x * width;
-    const localGround = flowerGround(memory, index, height);
+    const localGround = flowerGround(memory, height);
     const progress = growthProgress(memory, localGround, elapsed);
     const flowerHeight = (10 + memory.weight * 34) * scale;
     flowerPath(x, localGround, flowerHeight, TYPES[memory.type].color, memory.sway,
@@ -292,12 +315,12 @@ document.querySelector('#regrow').addEventListener('click', () => {
   document.querySelectorAll('.day.is-active').forEach(day => day.classList.remove('is-active'));
   dateLabel.textContent = '全年记忆';
   memoryLabel.textContent = '花田正在从这一年的日子里重新长出来。';
-  startGrowth(recentMemories());
+  startGrowth(recentDays());
 });
 
 window.addEventListener('resize', resizeCanvas);
 memories = makeMemories();
 buildCalendar();
 resizeCanvas();
-startGrowth(recentMemories());
+startGrowth(recentDays());
 requestAnimationFrame(draw);
