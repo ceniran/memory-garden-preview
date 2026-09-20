@@ -168,23 +168,26 @@ function flowerPath(x, ground, height, color, phase, highlighted, progress, scal
 }
 
 function drawLocalHaze(width, height) {
-  context.save();
-  context.filter = 'blur(13px)';
-  context.globalCompositeOperation = 'multiply';
-  for (let index = 0; index < memories.length; index += 18) {
+  for (let index = 0; index < memories.length; index += 28) {
     const memory = memories[index];
     const depth = memory.depth;
     const x = memory.x * width;
     const y = height * (.57 + depth * .3);
-    const patchWidth = 24 + depth * 48;
-    const patchHeight = 5 + depth * 9;
-    context.globalAlpha = .045 + depth * .055;
-    context.fillStyle = index % 36 ? '#80bd88' : '#a3d0a6';
+    const patchWidth = 34 + depth * 58;
+    const patchHeight = 8 + depth * 13;
+    context.save();
+    context.translate(x, y);
+    context.scale(patchWidth, patchHeight);
+    const haze = context.createRadialGradient(0, 0, 0, 0, 0, 1);
+    haze.addColorStop(0, `rgba(107, 181, 119, ${.11 + depth * .07})`);
+    haze.addColorStop(.45, `rgba(128, 194, 137, ${.07 + depth * .04})`);
+    haze.addColorStop(1, 'rgba(151, 207, 157, 0)');
+    context.fillStyle = haze;
     context.beginPath();
-    context.ellipse(x, y, patchWidth, patchHeight, 0, 0, Math.PI * 2);
+    context.arc(0, 0, 1, 0, Math.PI * 2);
     context.fill();
+    context.restore();
   }
-  context.restore();
 }
 
 function drawFallingSeeds(width, height, now) {
