@@ -168,19 +168,19 @@ function flowerPath(x, ground, height, color, phase, highlighted, progress, scal
 }
 
 function drawLocalHaze(width, height) {
-  for (let index = 0; index < memories.length; index += 28) {
+  for (let index = 0; index < memories.length; index += 18) {
     const memory = memories[index];
     const depth = memory.depth;
     const x = memory.x * width;
     const y = height * (.57 + depth * .3);
-    const patchWidth = 34 + depth * 58;
-    const patchHeight = 8 + depth * 13;
+    const patchWidth = 42 + depth * 72;
+    const patchHeight = 10 + depth * 17;
     context.save();
     context.translate(x, y);
     context.scale(patchWidth, patchHeight);
     const haze = context.createRadialGradient(0, 0, 0, 0, 0, 1);
-    haze.addColorStop(0, `rgba(107, 181, 119, ${.11 + depth * .07})`);
-    haze.addColorStop(.45, `rgba(128, 194, 137, ${.07 + depth * .04})`);
+    haze.addColorStop(0, `rgba(92, 174, 109, ${.2 + depth * .09})`);
+    haze.addColorStop(.48, `rgba(119, 191, 130, ${.12 + depth * .07})`);
     haze.addColorStop(1, 'rgba(151, 207, 157, 0)');
     context.fillStyle = haze;
     context.beginPath();
