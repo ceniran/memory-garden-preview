@@ -16,6 +16,7 @@ const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 let seed = 20260920;
 let memories = [];
+let fallingSeeds = [];
 let selectedDate = null;
 let startTime = performance.now();
 let frame = 0;
@@ -39,7 +40,7 @@ function makeMemories() {
   for (let index = 0; index < 364; index += 1) {
     const date = new Date(start);
     date.setUTCDate(start.getUTCDate() + index);
-    const count = random() < .44 ? 0 : 1 + Math.floor(random() * (random() > .78 ? 4 : 2));
+    const count = random() < .52 ? 0 : 1 + Math.floor(random() * (random() > .82 ? 3 : 2));
     for (let item = 0; item < count; item += 1) {
       const type = Object.keys(TYPES)[Math.floor(random() * 4)];
       result.push({
@@ -56,6 +57,18 @@ function makeMemories() {
     }
   }
   return result;
+}
+
+function makeFallingSeeds() {
+  return Array.from({ length: 15 }, (_, index) => ({
+    x: .04 + random() * .92,
+    y: random(),
+    speed: .035 + random() * .065,
+    length: 5 + random() * 10,
+    alpha: .12 + random() * .3,
+    width: .7 + random() * 1.2,
+    phase: index * .71 + random() * 4
+  }));
 }
 
 function buildCalendar() {
@@ -140,7 +153,7 @@ function flowerPath(x, ground, height, color, phase, highlighted, progress, scal
 
   if (progress < .72) return;
   const bloom = Math.min(1, (progress - .72) / .28);
-  const radius = (highlighted ? 3.4 : 2.15 + depth * 1.05) * bloom * scale;
+  const radius = (highlighted ? 3 : 1.7 + depth * .72) * bloom * scale;
   for (let petal = 0; petal < 5; petal += 1) {
     const angle = petal / 5 * Math.PI * 2 + phase;
     context.fillStyle = color;
@@ -154,11 +167,53 @@ function flowerPath(x, ground, height, color, phase, highlighted, progress, scal
   context.fill();
 }
 
+function drawLocalHaze(width, height) {
+  context.save();
+  context.filter = 'blur(13px)';
+  context.globalCompositeOperation = 'multiply';
+  for (let index = 0; index < memories.length; index += 18) {
+    const memory = memories[index];
+    const depth = memory.depth;
+    const x = memory.x * width;
+    const y = height * (.57 + depth * .3);
+    const patchWidth = 24 + depth * 48;
+    const patchHeight = 5 + depth * 9;
+    context.globalAlpha = .045 + depth * .055;
+    context.fillStyle = index % 36 ? '#80bd88' : '#a3d0a6';
+    context.beginPath();
+    context.ellipse(x, y, patchWidth, patchHeight, 0, 0, Math.PI * 2);
+    context.fill();
+  }
+  context.restore();
+}
+
+function drawFallingSeeds(width, height, now) {
+  const fieldTop = height * .47;
+  context.save();
+  context.lineCap = 'round';
+  fallingSeeds.forEach(seedLine => {
+    const travel = reducedMotion ? seedLine.y : (seedLine.y + now * seedLine.speed / 1000) % 1;
+    const y = 8 + travel * (fieldTop - 26);
+    const drift = reducedMotion ? 0 : Math.sin(now * .0007 + seedLine.phase) * 3;
+    context.globalAlpha = seedLine.alpha;
+    context.strokeStyle = '#3f8760';
+    context.lineWidth = seedLine.width;
+    context.beginPath();
+    context.moveTo(seedLine.x * width + drift, y);
+    context.lineTo(seedLine.x * width + drift, y + seedLine.length);
+    context.stroke();
+  });
+  context.restore();
+}
+
 function draw(now) {
   const width = canvas.clientWidth;
   const height = canvas.clientHeight;
   context.clearRect(0, 0, width, height);
   const elapsed = reducedMotion ? 99999 : now - startTime;
+
+  drawFallingSeeds(width, height, now);
+  drawLocalHaze(width, height);
 
   memories.forEach((memory, index) => {
     const highlighted = selectedDate === memory.date;
@@ -170,7 +225,7 @@ function draw(now) {
     const progress = Math.min(1, Math.max(0, (elapsed - index * 3) / 850));
     const x = memory.x * width;
     const localGround = height * (.57 + depth * .3) + Math.sin(index * 1.7) * (3 + depth * 9);
-    const flowerHeight = (12 + memory.weight * 40) * scale;
+    const flowerHeight = (10 + memory.weight * 34) * scale;
     flowerPath(x, localGround, flowerHeight, TYPES[memory.type].color, memory.sway,
       highlighted, progress, scale, memory.leafCount, depth);
     context.restore();
@@ -190,6 +245,7 @@ document.querySelector('#regrow').addEventListener('click', () => {
 
 window.addEventListener('resize', resizeCanvas);
 memories = makeMemories();
+fallingSeeds = makeFallingSeeds();
 buildCalendar();
 resizeCanvas();
 requestAnimationFrame(draw);
