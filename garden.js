@@ -41,24 +41,24 @@ function makeMemories() {
     const date = new Date(start);
     date.setUTCDate(start.getUTCDate() + index);
     const count = random() < .52 ? 0 : 1 + Math.floor(random() * (random() > .82 ? 3 : 2));
-    const rootX = .04 + random() * .92;
     for (let item = 0; item < count; item += 1) {
       const type = Object.keys(TYPES)[Math.floor(random() * 4)];
+      const weight = .25 + random() * .75;
       result.push({
         id: `${index}-${item}`,
         date: dateKey(date),
         dayIndex: index,
-        depth: index / 363,
+        depth: (weight - .25) / .75,
         type,
-        weight: .25 + random() * .75,
-        x: Math.max(.035, Math.min(.965, rootX + (item - (count - 1) / 2) * .014)),
+        weight,
+        x: .04 + random() * .92,
         sway: random() * Math.PI * 2,
         leafCount: 1 + Math.floor(random() * 5),
         title: ['一起留下的片刻', '今天长出的新理解', '慢慢完成的一件事', '又靠近了一点'][Math.floor(random() * 4)]
       });
     }
   }
-  return result;
+  return result.sort((a, b) => a.weight - b.weight);
 }
 
 function dayFor(date, dayIndex) {
@@ -66,9 +66,9 @@ function dayFor(date, dayIndex) {
   return {
     date,
     dayIndex,
-    depth: dayIndex / 363,
     memories: items,
-    x: items.length ? items.reduce((sum, memory) => sum + memory.x, 0) / items.length : .08 + ((dayIndex * 47) % 83) / 100
+    x: .08 + ((dayIndex * 47) % 83) / 100,
+    ground: .68 + ((dayIndex * 29) % 16) / 100
   };
 }
 
@@ -218,11 +218,11 @@ function drawLocalHaze(width, height) {
 }
 
 function dayGround(day, height) {
-  return height * (.57 + day.depth * .3) + Math.sin(day.dayIndex * 1.7) * (3 + day.depth * 9);
+  return height * day.ground;
 }
 
 function flowerGround(memory, height) {
-  return dayGround(memory, height);
+  return height * (.57 + memory.depth * .3) + Math.sin(memory.sway * 2.1) * (3 + memory.depth * 9);
 }
 
 function drawRipple(x, ground, age) {
@@ -273,11 +273,11 @@ function drawGrowthRain(width, height, elapsed) {
   if (rainingDate) document.querySelector(`.day[data-date="${rainingDate}"]`)?.classList.add('is-raining');
 }
 
-function growthProgress(memory, ground, elapsed) {
+function growthProgress(memory, height, elapsed) {
   if (reducedMotion) return 1;
   const event = growthEvents.find(item => item.day.date === memory.date);
   if (!event) return 1;
-  const { landing } = eventTiming(event, ground);
+  const { landing } = eventTiming(event, dayGround(event.day, height));
   return Math.min(1, Math.max(0, (elapsed - landing) / 920));
 }
 
@@ -299,7 +299,7 @@ function draw(now) {
     context.globalAlpha = dimmed ? .055 : highlighted ? 1 : .22 + depth * .68;
     const x = memory.x * width;
     const localGround = flowerGround(memory, height);
-    const progress = growthProgress(memory, localGround, elapsed);
+    const progress = growthProgress(memory, height, elapsed);
     const flowerHeight = (10 + memory.weight * 34) * scale;
     flowerPath(x, localGround, flowerHeight, TYPES[memory.type].color, memory.sway,
       highlighted, progress, scale, memory.leafCount, depth);
