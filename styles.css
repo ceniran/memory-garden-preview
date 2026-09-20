@@ -128,6 +128,12 @@ h1 {
 .day[data-level="4"] { background: var(--green-4); }
 .day:hover, .day:focus-visible { transform: translateY(-2px) scale(1.12); outline: 2px solid rgba(45,104,65,.28); outline-offset: 1px; }
 .day.is-active { outline: 2px solid #283e30; outline-offset: 2px; }
+.day.is-raining {
+  transform: translateY(-2px) scale(1.12);
+  outline: 2px solid rgba(45,104,65,.34);
+  outline-offset: 1px;
+  box-shadow: 0 0 0 4px rgba(94,154,105,.1);
+}
 
 .garden-panel {
   position: relative;
