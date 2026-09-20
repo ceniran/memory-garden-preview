@@ -17,6 +17,7 @@ const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 let seed = 20260920;
 let memories = [];
 let growthEvents = [];
+let grassTufts = [];
 let selectedDate = null;
 let startTime = performance.now();
 let frame = 0;
@@ -53,12 +54,21 @@ function makeMemories() {
         weight,
         x: .04 + random() * .92,
         sway: random() * Math.PI * 2,
-        leafCount: 1 + Math.floor(random() * 5),
+        leafCount: Math.floor(random() * 3),
         title: ['一起留下的片刻', '今天长出的新理解', '慢慢完成的一件事', '又靠近了一点'][Math.floor(random() * 4)]
       });
     }
   }
   return result.sort((a, b) => a.weight - b.weight);
+}
+
+function makeGrassTufts() {
+  return Array.from({ length: 18 }, (_, index) => ({
+    x: .035 + ((index * 67) % 91) / 100,
+    depth: .18 + ((index * 37) % 77) / 100,
+    blades: 1 + index % 3,
+    phase: index * .83
+  }));
 }
 
 function makeGrowthEvents(items) {
@@ -135,6 +145,27 @@ function drawLeaf(x, y, side, scale, angle, alpha) {
   context.quadraticCurveTo(7, -5, 13, 0);
   context.quadraticCurveTo(7, 5, 0, 0);
   context.fill();
+  context.restore();
+}
+
+function drawGrass(width, height) {
+  context.save();
+  context.lineCap = 'round';
+  grassTufts.forEach(tuft => {
+    const ground = height * (.57 + tuft.depth * .3);
+    const sway = reducedMotion ? 0 : Math.sin(frame * .011 + tuft.phase) * (1.2 + tuft.depth);
+    context.strokeStyle = `rgba(55, 117, 68, ${.16 + tuft.depth * .34})`;
+    context.lineWidth = .55 + tuft.depth * .45;
+    for (let blade = 0; blade < tuft.blades; blade += 1) {
+      const offset = (blade - (tuft.blades - 1) / 2) * 2.4;
+      const bladeHeight = 5 + tuft.depth * 10 + blade * 1.6;
+      context.beginPath();
+      context.moveTo(tuft.x * width + offset, ground);
+      context.quadraticCurveTo(tuft.x * width + offset + sway * .35, ground - bladeHeight * .55,
+        tuft.x * width + offset + sway, ground - bladeHeight);
+      context.stroke();
+    }
+  });
   context.restore();
 }
 
@@ -273,6 +304,7 @@ function draw(now) {
 
   if (!reducedMotion) drawGrowthRain(width, height, elapsed);
   drawLocalHaze(width, height, elapsed);
+  drawGrass(width, height);
 
   memories.forEach((memory, index) => {
     const highlighted = selectedDate === memory.date;
@@ -304,6 +336,7 @@ document.querySelector('#regrow').addEventListener('click', () => {
 
 window.addEventListener('resize', resizeCanvas);
 memories = makeMemories();
+grassTufts = makeGrassTufts();
 buildCalendar();
 resizeCanvas();
 startGrowth(memories);
