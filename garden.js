@@ -66,7 +66,7 @@ function makeGrassTufts() {
   return Array.from({ length: 18 }, (_, index) => ({
     x: .035 + ((index * 67) % 91) / 100,
     depth: .18 + ((index * 37) % 77) / 100,
-    blades: 1 + index % 3,
+    blades: 2 + index % 3,
     phase: index * .83
   }));
 }
@@ -153,17 +153,31 @@ function drawGrass(width, height) {
   context.lineCap = 'round';
   grassTufts.forEach(tuft => {
     const ground = height * (.57 + tuft.depth * .3);
-    const sway = reducedMotion ? 0 : Math.sin(frame * .011 + tuft.phase) * (1.2 + tuft.depth);
-    context.strokeStyle = `rgba(55, 117, 68, ${.16 + tuft.depth * .34})`;
-    context.lineWidth = .55 + tuft.depth * .45;
+    const breeze = reducedMotion ? 0 : Math.sin(frame * .011 + tuft.phase) * (.45 + tuft.depth * .5);
+    context.strokeStyle = `rgba(55, 117, 68, ${.13 + tuft.depth * .27})`;
+    context.fillStyle = `rgba(69, 132, 76, ${.11 + tuft.depth * .22})`;
+    context.lineWidth = .48 + tuft.depth * .32;
     for (let blade = 0; blade < tuft.blades; blade += 1) {
-      const offset = (blade - (tuft.blades - 1) / 2) * 2.4;
-      const bladeHeight = 5 + tuft.depth * 10 + blade * 1.6;
+      const centered = blade - (tuft.blades - 1) / 2;
+      const offset = centered * 1.35 + Math.sin(tuft.phase + blade) * .8;
+      const lean = centered * 2.7 + Math.sin(tuft.phase * 1.7 + blade) * 1.8 + breeze;
+      const bladeHeight = 3.5 + tuft.depth * 6 + (blade % 2) * 1.6;
+      const baseX = tuft.x * width + offset;
+      const tipX = baseX + lean;
+      const tipY = ground - bladeHeight;
       context.beginPath();
-      context.moveTo(tuft.x * width + offset, ground);
-      context.quadraticCurveTo(tuft.x * width + offset + sway * .35, ground - bladeHeight * .55,
-        tuft.x * width + offset + sway, ground - bladeHeight);
+      context.moveTo(baseX, ground + Math.abs(centered) * .35);
+      context.quadraticCurveTo(baseX + lean * .28, ground - bladeHeight * .48, tipX, tipY);
       context.stroke();
+      if (blade === 0 && tuft.blades > 2) {
+        context.save();
+        context.translate(baseX + lean * .48, ground - bladeHeight * .48);
+        context.rotate(-.45 + lean * .04);
+        context.beginPath();
+        context.ellipse(0, 0, 1.9 + tuft.depth, .65 + tuft.depth * .25, 0, 0, Math.PI * 2);
+        context.fill();
+        context.restore();
+      }
     }
   });
   context.restore();
