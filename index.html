@@ -22,8 +22,15 @@
       </header>
 
       <section class="calendar-panel" aria-label="年度记忆日历">
-        <div class="legend">
-          <span>2026</span>
+        <div class="legend month-nav">
+          <button id="previous-month" type="button" aria-label="上个月">←</button>
+          <strong id="month-label">读取月份</strong>
+          <button id="next-month" type="button" aria-label="下个月">→</button>
+        </div>
+        <div class="calendar-weekdays" aria-hidden="true">
+          <span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span>
+        </div>
+        <div class="legend calendar-scale">
           <span class="legend-scale">安静 <i></i><i></i><i></i><i></i> 丰盛</span>
         </div>
         <div id="calendar" class="calendar" role="grid" aria-label="点击日期照亮对应记忆小花"></div>
@@ -31,11 +38,12 @@
 
       <section class="garden-panel" aria-live="polite">
         <canvas id="garden" aria-label="由记忆日期、类型与权重生成的花田"></canvas>
-        <div class="garden-copy">
-          <p id="date-label">全年记忆</p>
-          <p id="memory-label">点击上方日期，看看那一天长出了什么。</p>
-        </div>
       </section>
+
+      <div class="garden-copy" aria-live="polite">
+        <p id="date-label">全年记忆</p>
+        <p id="memory-label">点击上方日期，看看那一天长出了什么。</p>
+      </div>
 
       <footer class="types" aria-label="记忆类型图例">
         <span><i class="relationship"></i>关系</span>
@@ -44,6 +52,6 @@
         <span><i class="reflection"></i>反思</span>
       </footer>
     </main>
-    <script src="./garden.js?v=23"></script>
+    <script src="./garden.js?v=24"></script>
   </body>
 </html>

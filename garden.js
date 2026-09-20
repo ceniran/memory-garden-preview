@@ -12,6 +12,9 @@ const context = canvas.getContext('2d');
 const calendar = document.querySelector('#calendar');
 const dateLabel = document.querySelector('#date-label');
 const memoryLabel = document.querySelector('#memory-label');
+const monthLabel = document.querySelector('#month-label');
+const previousMonthButton = document.querySelector('#previous-month');
+const nextMonthButton = document.querySelector('#next-month');
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 let seed = 20260920;
@@ -22,6 +25,7 @@ let selectedDate = null;
 let startTime = performance.now();
 let frame = 0;
 let calendarStart = new Date('2025-10-27T00:00:00Z');
+let calendarMonth = new Date();
 
 function random() {
   seed |= 0;
@@ -89,6 +93,7 @@ function makeRealMemories(items) {
   end.setUTCHours(0, 0, 0, 0);
   calendarStart = new Date(end);
   calendarStart.setUTCDate(calendarStart.getUTCDate() - 363);
+  calendarMonth = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), 1));
   const startTimeValue = calendarStart.getTime();
   const result = dated
     .map(item => {
@@ -158,10 +163,19 @@ function buildCalendar() {
   calendar.replaceChildren();
   const counts = new Map();
   memories.forEach(memory => counts.set(memory.date, (counts.get(memory.date) || 0) + 1));
-  const start = calendarStart;
-  for (let index = 0; index < 364; index += 1) {
-    const date = new Date(start);
-    date.setUTCDate(start.getUTCDate() + index);
+  const year = calendarMonth.getUTCFullYear();
+  const month = calendarMonth.getUTCMonth();
+  const first = new Date(Date.UTC(year, month, 1));
+  const leading = (first.getUTCDay() + 6) % 7;
+  const gridStart = new Date(first);
+  gridStart.setUTCDate(first.getUTCDate() - leading);
+  monthLabel.textContent = `${year}年${month + 1}月`;
+  calendar.classList.remove('is-changing');
+  void calendar.offsetWidth;
+  calendar.classList.add('is-changing');
+  for (let index = 0; index < 42; index += 1) {
+    const date = new Date(gridStart);
+    date.setUTCDate(gridStart.getUTCDate() + index);
     const key = dateKey(date);
     const count = counts.get(key) || 0;
     const button = document.createElement('button');
@@ -169,12 +183,34 @@ function buildCalendar() {
     button.className = 'day';
     button.dataset.date = key;
     button.dataset.level = String(Math.min(4, count));
+    button.dataset.outside = date.getUTCMonth() === month ? 'false' : 'true';
     button.style.setProperty('--order', index);
     button.setAttribute('role', 'gridcell');
     button.setAttribute('aria-label', `${key}，${count ? `${count} 朵记忆花` : '土地休息'}`);
-    button.addEventListener('click', () => selectDay(key, button));
+    const dayNumber = document.createElement('span');
+    dayNumber.textContent = String(date.getUTCDate());
+    button.append(dayNumber);
+    if (count) {
+      const flowerCount = document.createElement('small');
+      flowerCount.textContent = String(count);
+      button.append(flowerCount);
+    }
+    button.addEventListener('click', () => {
+      if (date.getUTCMonth() !== month) {
+        calendarMonth = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
+        buildCalendar();
+        selectDay(key, calendar.querySelector(`[data-date="${key}"]`));
+        return;
+      }
+      selectDay(key, button);
+    });
     calendar.append(button);
   }
+}
+
+function changeMonth(offset) {
+  calendarMonth = new Date(Date.UTC(calendarMonth.getUTCFullYear(), calendarMonth.getUTCMonth() + offset, 1));
+  buildCalendar();
 }
 
 function selectDay(key, button) {
@@ -480,6 +516,8 @@ document.querySelector('#regrow').addEventListener('click', () => {
   memoryLabel.textContent = '雨正错落落进花田；落在哪里，哪里的记忆花就开始生长。';
   startGrowth(memories);
 });
+previousMonthButton.addEventListener('click', () => changeMonth(-1));
+nextMonthButton.addEventListener('click', () => changeMonth(1));
 
 async function initialize() {
   const endpoint = document.querySelector('meta[name="garden-data-source"]')?.content;
@@ -500,6 +538,9 @@ async function initialize() {
       console.error(error);
     } else {
       memories = makeMemories();
+      const latest = memories.reduce((value, memory) => memory.date > value ? memory.date : value, '');
+      const latestDate = new Date(`${latest}T00:00:00Z`);
+      calendarMonth = new Date(Date.UTC(latestDate.getUTCFullYear(), latestDate.getUTCMonth(), 1));
     }
   }
   grassTufts = makeGrassTufts();
