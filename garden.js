@@ -74,7 +74,7 @@ function dayFor(date, dayIndex) {
 }
 
 function makeGrowthEvents(days) {
-  const interval = days.length > 1 ? 1.2 : 0;
+  const interval = 0;
   return days.map((day, order) => ({
     day,
     delay: 180 + order * interval,
@@ -284,7 +284,8 @@ function drawGrowthRain(width, height, elapsed) {
 function growthProgress(memory, height, elapsed) {
   if (reducedMotion) return 1;
   if (wholeGardenReplay) {
-    return Math.min(1, Math.max(0, (elapsed - 1750) / 920));
+    const raw = Math.min(1, Math.max(0, (elapsed - 1300) / 2200));
+    return raw * raw * (3 - 2 * raw);
   }
   const event = growthEvents.find(item => item.day.date === memory.date);
   if (!event) return 1;
