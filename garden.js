@@ -51,6 +51,7 @@ function makeMemories() {
         dayIndex: index,
         depth: (weight - .25) / .75,
         type,
+        flowerStyle: (index * 7 + item * 11) % 3,
         weight,
         x: .04 + random() * .92,
         sway: random() * Math.PI * 2,
@@ -203,7 +204,60 @@ function drawGrass(width, height, elapsed) {
   context.restore();
 }
 
-function flowerPath(x, ground, height, color, phase, highlighted, progress, scale, leafCount, depth) {
+function drawRoundBloom(x, y, radius, color, phase) {
+  for (let petal = 0; petal < 5; petal += 1) {
+    const angle = petal / 5 * Math.PI * 2 + phase;
+    context.fillStyle = color;
+    context.beginPath();
+    context.arc(x + Math.cos(angle) * radius, y + Math.sin(angle) * radius, radius * .76, 0, Math.PI * 2);
+    context.fill();
+  }
+  context.fillStyle = '#fff2b3';
+  context.beginPath();
+  context.arc(x, y, radius * .65, 0, Math.PI * 2);
+  context.fill();
+}
+
+function drawBezierBloom(x, y, radius, color, phase) {
+  context.save();
+  context.translate(x, y);
+  for (let petal = 0; petal < 6; petal += 1) {
+    context.save();
+    context.rotate(petal / 6 * Math.PI * 2 + phase);
+    context.fillStyle = color;
+    context.beginPath();
+    context.moveTo(0, radius * .18);
+    context.bezierCurveTo(-radius * .65, -radius * .1, -radius * .72, -radius * 1.55, 0, -radius * 2.05);
+    context.bezierCurveTo(radius * .72, -radius * 1.48, radius * .62, -radius * .18, 0, radius * .18);
+    context.fill();
+    context.restore();
+  }
+  context.fillStyle = '#f8e18d';
+  context.beginPath();
+  context.arc(0, 0, radius * .56, 0, Math.PI * 2);
+  context.fill();
+  context.restore();
+}
+
+function drawBellBloom(x, y, radius, color, phase) {
+  const tilt = Math.sin(phase) * radius * .35;
+  context.save();
+  context.translate(x + tilt, y - radius * .25);
+  context.fillStyle = color;
+  context.beginPath();
+  context.moveTo(-radius * .86, 0);
+  context.bezierCurveTo(-radius, radius * .72, -radius * .56, radius * 1.55, 0, radius * 1.62);
+  context.bezierCurveTo(radius * .56, radius * 1.55, radius, radius * .72, radius * .86, 0);
+  context.closePath();
+  context.fill();
+  context.fillStyle = '#fff0a8';
+  context.beginPath();
+  context.arc(0, radius * 1.48, radius * .22, 0, Math.PI * 2);
+  context.fill();
+  context.restore();
+}
+
+function flowerPath(x, ground, height, color, phase, highlighted, progress, scale, leafCount, depth, flowerStyle) {
   if (progress <= .015) return;
   const stemHeight = height * progress;
   const top = ground - stemHeight;
@@ -228,17 +282,9 @@ function flowerPath(x, ground, height, color, phase, highlighted, progress, scal
   if (progress < .72) return;
   const bloom = Math.min(1, (progress - .72) / .28);
   const radius = (highlighted ? 4.2 : 2.35 + depth) * bloom * scale;
-  for (let petal = 0; petal < 5; petal += 1) {
-    const angle = petal / 5 * Math.PI * 2 + phase;
-    context.fillStyle = color;
-    context.beginPath();
-    context.arc(x + sway + Math.cos(angle) * radius, top + Math.sin(angle) * radius, radius * .76, 0, Math.PI * 2);
-    context.fill();
-  }
-  context.fillStyle = '#fff2b3';
-  context.beginPath();
-  context.arc(x + sway, top, radius * .65, 0, Math.PI * 2);
-  context.fill();
+  if (flowerStyle === 0) drawRoundBloom(x + sway, top, radius, color, phase);
+  if (flowerStyle === 1) drawBezierBloom(x + sway, top, radius * .72, color, phase);
+  if (flowerStyle === 2) drawBellBloom(x + sway, top, radius * .9, color, phase);
 }
 
 function drawLocalHaze(width, height, elapsed) {
@@ -353,7 +399,7 @@ function draw(now) {
     const progress = growthProgress(memory, height, elapsed);
     const flowerHeight = (9 + memory.weight * 23) * scale;
     flowerPath(x, localGround, flowerHeight, TYPES[memory.type].color, memory.sway,
-      highlighted, progress, scale, memory.leafCount, depth);
+      highlighted, progress, scale, memory.leafCount, depth, memory.flowerStyle);
     context.restore();
   });
 
