@@ -73,18 +73,18 @@ function dayFor(date, dayIndex) {
 }
 
 function makeGrowthEvents(days) {
+  const interval = days.length > 1 ? Math.max(18, Math.min(310, 6500 / (days.length - 1))) : 0;
   return days.map((day, order) => ({
     day,
-    delay: 180 + order * 310,
+    delay: 180 + order * interval,
     gravity: .00072 + (order % 4) * .00005,
     drift: ((order % 3) - 1) * 5
   }));
 }
 
-function recentDays() {
+function allDays() {
   const start = new Date('2025-10-27T00:00:00Z');
-  return Array.from({ length: 8 }, (_, offset) => {
-    const dayIndex = 356 + offset;
+  return Array.from({ length: 364 }, (_, dayIndex) => {
     const date = new Date(start);
     date.setUTCDate(start.getUTCDate() + dayIndex);
     return dayFor(dateKey(date), dayIndex);
@@ -125,7 +125,7 @@ function selectDay(key, button) {
   if (selectedDate) button.classList.add('is-active');
   const selected = memories.filter(memory => memory.date === selectedDate);
   const dayIndex = Number(button.style.getPropertyValue('--order'));
-  startGrowth(selectedDate ? [dayFor(selectedDate, dayIndex)] : recentDays());
+  startGrowth(selectedDate ? [dayFor(selectedDate, dayIndex)] : allDays());
   dateLabel.textContent = selectedDate || '全年记忆';
   memoryLabel.textContent = selectedDate
     ? selected.length
@@ -284,7 +284,8 @@ function growthProgress(memory, height, elapsed) {
   const event = growthEvents.find(item => item.day.date === memory.date);
   if (!event) return 1;
   const { landing } = eventTiming(event, dayGround(event.day, height));
-  return Math.min(1, Math.max(0, (elapsed - landing) / 920));
+  const depthDelay = memory.depth * 720;
+  return Math.min(1, Math.max(0, (elapsed - landing - depthDelay) / 920));
 }
 
 function draw(now) {
@@ -320,13 +321,13 @@ document.querySelector('#regrow').addEventListener('click', () => {
   selectedDate = null;
   document.querySelectorAll('.day.is-active').forEach(day => day.classList.remove('is-active'));
   dateLabel.textContent = '全年记忆';
-  memoryLabel.textContent = '花田正在从这一年的日子里重新长出来。';
-  startGrowth(recentDays());
+  memoryLabel.textContent = '一整年的雨正在落下，所有记忆花会从远景到前景重新生长。';
+  startGrowth(allDays());
 });
 
 window.addEventListener('resize', resizeCanvas);
 memories = makeMemories();
 buildCalendar();
 resizeCanvas();
-startGrowth(recentDays());
+startGrowth(allDays());
 requestAnimationFrame(draw);
