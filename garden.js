@@ -160,22 +160,6 @@ function draw(now) {
   context.clearRect(0, 0, width, height);
   const elapsed = reducedMotion ? 99999 : now - startTime;
 
-  const sky = context.createLinearGradient(0, height * .25, 0, height);
-  sky.addColorStop(0, 'rgba(250,252,247,0)');
-  sky.addColorStop(.55, 'rgba(216,233,213,.13)');
-  sky.addColorStop(1, 'rgba(161,203,159,.2)');
-  context.fillStyle = sky;
-  context.fillRect(0, 0, width, height);
-
-  for (let layer = 0; layer < 4; layer += 1) {
-    const y = height * (.48 + layer * .12);
-    const mist = context.createRadialGradient(width * .5, y, 8, width * .5, y, width * (.34 + layer * .1));
-    mist.addColorStop(0, `rgba(112, 174, 119, ${.055 + layer * .028})`);
-    mist.addColorStop(1, 'rgba(125, 184, 126, 0)');
-    context.fillStyle = mist;
-    context.fillRect(0, y - 64, width, 130);
-  }
-
   memories.forEach((memory, index) => {
     const highlighted = selectedDate === memory.date;
     const dimmed = selectedDate && !highlighted;
@@ -185,8 +169,8 @@ function draw(now) {
     context.globalAlpha = dimmed ? .055 : highlighted ? 1 : .22 + depth * .68;
     const progress = Math.min(1, Math.max(0, (elapsed - index * 3) / 850));
     const x = memory.x * width;
-    const localGround = height * (.47 + depth * .4) + Math.sin(index * 1.7) * (4 + depth * 14);
-    const flowerHeight = (18 + memory.weight * 62) * scale;
+    const localGround = height * (.57 + depth * .3) + Math.sin(index * 1.7) * (3 + depth * 9);
+    const flowerHeight = (12 + memory.weight * 40) * scale;
     flowerPath(x, localGround, flowerHeight, TYPES[memory.type].color, memory.sway,
       highlighted, progress, scale, memory.leafCount, depth);
     context.restore();
