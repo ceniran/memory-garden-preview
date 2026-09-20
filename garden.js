@@ -240,19 +240,35 @@ function drawBezierBloom(x, y, radius, color, phase) {
 }
 
 function drawBellBloom(x, y, radius, color, phase) {
-  const tilt = Math.sin(phase) * radius * .35;
+  const tilt = Math.sin(phase) * radius * .28;
   context.save();
-  context.translate(x + tilt, y - radius * .25);
+  context.translate(x + tilt, y - radius * .18);
   context.fillStyle = color;
   context.beginPath();
-  context.moveTo(-radius * .86, 0);
-  context.bezierCurveTo(-radius, radius * .72, -radius * .56, radius * 1.55, 0, radius * 1.62);
-  context.bezierCurveTo(radius * .56, radius * 1.55, radius, radius * .72, radius * .86, 0);
+  context.moveTo(-radius * .46, 0);
+  context.bezierCurveTo(-radius * .55, radius * .48, -radius * .84, radius * 1.02, -radius, radius * 1.28);
+  context.quadraticCurveTo(-radius * .78, radius * 1.58, -radius * .48, radius * 1.34);
+  context.quadraticCurveTo(-radius * .22, radius * 1.68, 0, radius * 1.38);
+  context.quadraticCurveTo(radius * .22, radius * 1.68, radius * .48, radius * 1.34);
+  context.quadraticCurveTo(radius * .78, radius * 1.58, radius, radius * 1.28);
+  context.bezierCurveTo(radius * .84, radius * 1.02, radius * .55, radius * .48, radius * .46, 0);
   context.closePath();
   context.fill();
+  context.strokeStyle = 'rgba(255,255,255,.28)';
+  context.lineWidth = Math.max(.45, radius * .12);
+  context.beginPath();
+  context.moveTo(0, radius * .28);
+  context.quadraticCurveTo(-radius * .08, radius * .82, 0, radius * 1.28);
+  context.stroke();
+  context.strokeStyle = '#f6dfa0';
+  context.lineWidth = Math.max(.45, radius * .1);
+  context.beginPath();
+  context.moveTo(0, radius * 1.18);
+  context.lineTo(0, radius * 1.72);
+  context.stroke();
   context.fillStyle = '#fff0a8';
   context.beginPath();
-  context.arc(0, radius * 1.48, radius * .22, 0, Math.PI * 2);
+  context.arc(0, radius * 1.76, radius * .18, 0, Math.PI * 2);
   context.fill();
   context.restore();
 }
@@ -281,7 +297,7 @@ function flowerPath(x, ground, height, color, phase, highlighted, progress, scal
 
   if (progress < .72) return;
   const bloom = Math.min(1, (progress - .72) / .28);
-  const radius = (highlighted ? 4.2 : 2.35 + depth) * bloom * scale;
+  const radius = (highlighted ? 5 : 2.9 + depth * 1.15) * bloom * scale;
   if (flowerStyle === 0) drawRoundBloom(x + sway, top, radius, color, phase);
   if (flowerStyle === 1) drawBezierBloom(x + sway, top, radius * .72, color, phase);
   if (flowerStyle === 2) drawBellBloom(x + sway, top, radius * .9, color, phase);
