@@ -23,6 +23,7 @@ const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 let seed = 20260920;
 let memories = [];
 let visibleMemories = [];
+let visibleX = new Map();
 let growthEvents = [];
 let grassTufts = [];
 let selectedDate = null;
@@ -137,7 +138,7 @@ function makeGrassTufts(items = visibleMemories) {
     })
     .slice(0, 36)
     .map((memory, index) => ({
-      x: Math.max(.03, Math.min(.97, memory.x + (((index * 29) % 9) - 4) * .003)),
+      x: Math.max(.03, Math.min(.97, memoryX(memory) + (((index * 29) % 9) - 4) * .003)),
       depth: memory.depth,
       density: memory.density,
       memory,
@@ -168,6 +169,28 @@ function startGrowth(items) {
   startTime = performance.now();
 }
 
+function memoryX(memory) {
+  return visibleX.get(memory.id) ?? memory.x;
+}
+
+function layoutVisibleMemories() {
+  visibleX = new Map();
+  if (!selectedDate) {
+    visibleMemories.forEach(memory => visibleX.set(memory.id, memory.x));
+    return;
+  }
+  const ordered = [...visibleMemories].sort((a, b) => a.x - b.x);
+  if (ordered.length === 1) {
+    visibleX.set(ordered[0].id, .5);
+    return;
+  }
+  ordered.forEach((memory, index) => {
+    const evenPosition = .1 + index / (ordered.length - 1) * .8;
+    const jitter = Math.sin(hashText(memory.id) * .001) * Math.min(.012, .12 / ordered.length);
+    visibleX.set(memory.id, Math.max(.075, Math.min(.925, evenPosition + jitter)));
+  });
+}
+
 function memoriesInCalendarMonth() {
   const prefix = `${calendarMonth.getUTCFullYear()}-${String(calendarMonth.getUTCMonth() + 1).padStart(2, '0')}-`;
   return memories.filter(memory => memory.date.startsWith(prefix));
@@ -177,6 +200,7 @@ function showCalendarMonth({ replay = true } = {}) {
   selectedDate = null;
   document.querySelectorAll('.day.is-active').forEach(day => day.classList.remove('is-active'));
   visibleMemories = memoriesInCalendarMonth();
+  layoutVisibleMemories();
   grassTufts = makeGrassTufts(visibleMemories);
   if (replay) startGrowth(visibleMemories);
   dateLabel.textContent = `${calendarMonth.getUTCFullYear()}年${calendarMonth.getUTCMonth() + 1}月`;
@@ -252,6 +276,7 @@ function selectDay(key, button) {
   if (selectedDate) button.classList.add('is-active');
   const selected = memories.filter(memory => memory.date === selectedDate);
   visibleMemories = selectedDate ? selected : memoriesInCalendarMonth();
+  layoutVisibleMemories();
   grassTufts = makeGrassTufts(visibleMemories);
   startGrowth(visibleMemories);
   dateLabel.textContent = selectedDate || `${calendarMonth.getUTCFullYear()}年${calendarMonth.getUTCMonth() + 1}月`;
@@ -430,7 +455,7 @@ function drawLocalHaze(width, height, elapsed) {
     const progress = growthProgress(memory, height, elapsed);
     const hazeProgress = Math.min(1, Math.max(0, (progress - .42) / .58));
     if (!hazeProgress) return;
-    const x = memory.x * width;
+    const x = memoryX(memory) * width;
     const y = flowerGround(memory, height);
 
     context.save();
@@ -499,11 +524,11 @@ function drawGrowthRain(width, height, elapsed) {
     const timing = eventTiming(event, ground);
     const age = elapsed - event.delay;
     if (age < 0 || age >= timing.fallDuration) {
-      drawRipple(event.memory.x * width, ground, elapsed - timing.landing);
+      drawRipple(memoryX(event.memory) * width, ground, elapsed - timing.landing);
       return;
     }
     falling.push(event);
-    const x = event.memory.x * width + event.drift * (1 - age / timing.fallDuration);
+    const x = memoryX(event.memory) * width + event.drift * (1 - age / timing.fallDuration);
     const y = -30 + .5 * event.gravity * age * age;
     const speed = event.gravity * age;
     context.globalAlpha = .2 + Math.min(.42, speed * 120);
@@ -552,10 +577,10 @@ function draw(now) {
   visibleMemories.forEach(memory => {
     const highlighted = selectedDate === memory.date;
     const depth = memory.depth;
-    const scale = .48 + depth * .48;
+    const scale = (.48 + depth * .48) * (selectedDate ? 1.34 : 1.15);
     context.save();
     context.globalAlpha = highlighted ? 1 : .22 + depth * .68;
-    const x = memory.x * width;
+    const x = memoryX(memory) * width;
     const localGround = flowerGround(memory, height);
     const progress = growthProgress(memory, height, elapsed);
     const flowerHeight = (7 + memory.weight * 17) * scale;
