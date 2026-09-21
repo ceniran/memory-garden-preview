@@ -208,24 +208,15 @@ function memoryX(memory) {
   return visibleX.get(memory.id) ?? memory.x;
 }
 
+function stemHeight(memory, scale) {
+  const variation = .76 + (hashText(`${memory.id}-stem`) % 1000) / 999 * .58;
+  return (7 + memory.weight * 17) * scale * variation;
+}
+
 function layoutVisibleMemories() {
   visibleX = new Map();
   if (!selectedDate) {
-    const layerCount = Math.max(5, Math.min(12, Math.ceil(Math.sqrt(visibleMemories.length))));
-    const layers = Array.from({ length: layerCount }, () => []);
-    visibleMemories.forEach(memory => {
-      const layer = Math.min(layerCount - 1, Math.floor(memory.depth * layerCount));
-      layers[layer].push(memory);
-    });
-    layers.forEach((layer, layerIndex) => {
-      layer.sort((a, b) => a.x - b.x);
-      layer.forEach((memory, index) => {
-        const phase = (layerIndex * .381966) % 1;
-        const evenPosition = .06 + (((index + .5 + phase) % layer.length) / layer.length) * .88;
-        const jitter = Math.sin(hashText(memory.id) * .001) * Math.min(.009, .055 / layer.length);
-        visibleX.set(memory.id, Math.max(.05, Math.min(.95, evenPosition + jitter)));
-      });
-    });
+    visibleMemories.forEach(memory => visibleX.set(memory.id, memory.x));
     const width = Math.max(320, canvas.clientWidth);
     const height = Math.max(360, canvas.clientHeight);
     for (let pass = 0; pass < 40; pass += 1) {
@@ -235,8 +226,8 @@ function layoutVisibleMemories() {
           const second = visibleMemories[right];
           const firstScale = (.48 + first.depth * .48) * 1.15;
           const secondScale = (.48 + second.depth * .48) * 1.15;
-          const firstY = flowerGround(first, height) - (7 + first.weight * 17) * firstScale;
-          const secondY = flowerGround(second, height) - (7 + second.weight * 17) * secondScale;
+          const firstY = flowerGround(first, height) - stemHeight(first, firstScale);
+          const secondY = flowerGround(second, height) - stemHeight(second, secondScale);
           const clearance = (3.35 + first.depth * 1.3) * firstScale
             + (3.35 + second.depth * 1.3) * secondScale + 2;
           const verticalDistance = Math.abs(firstY - secondY);
@@ -680,7 +671,7 @@ function draw(now) {
     const x = memoryX(memory) * width;
     const localGround = flowerGround(memory, height);
     const progress = growthProgress(memory, height, elapsed);
-    const flowerHeight = (7 + memory.weight * 17) * scale;
+    const flowerHeight = stemHeight(memory, scale);
     flowerPath(x, localGround, flowerHeight, TYPES[memory.type].color, memory.sway,
       highlighted, progress, scale, memory.leafCount, depth, memory.flowerStyle);
     context.restore();
