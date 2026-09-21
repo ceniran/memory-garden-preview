@@ -211,7 +211,26 @@ function memoryX(memory) {
 function layoutVisibleMemories() {
   visibleX = new Map();
   if (!selectedDate) {
-    visibleMemories.forEach(memory => visibleX.set(memory.id, memory.x));
+    const points = visibleMemories.map(memory => ({ memory, x: memory.x }));
+    const minimumGap = Math.max(.014, .026 - points.length * .0001);
+    for (let pass = 0; pass < 5; pass += 1) {
+      for (let left = 0; left < points.length; left += 1) {
+        for (let right = left + 1; right < points.length; right += 1) {
+          const first = points[left];
+          const second = points[right];
+          if (Math.abs(first.memory.depth - second.memory.depth) > .075) continue;
+          const distance = Math.abs(first.x - second.x);
+          if (distance >= minimumGap) continue;
+          const direction = first.x === second.x
+            ? (hashText(first.memory.id) < hashText(second.memory.id) ? -1 : 1)
+            : Math.sign(first.x - second.x);
+          const shift = (minimumGap - distance) * .52;
+          first.x = Math.max(.04, Math.min(.96, first.x + direction * shift));
+          second.x = Math.max(.04, Math.min(.96, second.x - direction * shift));
+        }
+      }
+    }
+    points.forEach(point => visibleX.set(point.memory.id, point.x));
     return;
   }
   const ordered = [...visibleMemories].sort((a, b) => a.x - b.x);
@@ -496,7 +515,7 @@ function drawLocalHaze(width, height, elapsed) {
     const y = flowerGround(memory, height);
 
     context.save();
-    context.globalAlpha = hazeProgress * (.48 + depth * .28);
+    context.globalAlpha = hazeProgress * (.34 + depth * .42);
     context.translate(x + Math.sin(memory.sway) * 1.8, y + 1.2);
     context.scale(9 + depth * 10, 2.5 + depth * 2.2);
     const rootGlow = context.createRadialGradient(-.12, -.08, .04, 0, 0, 1);
