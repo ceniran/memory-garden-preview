@@ -226,6 +226,33 @@ function layoutVisibleMemories() {
         visibleX.set(memory.id, Math.max(.05, Math.min(.95, evenPosition + jitter)));
       });
     });
+    const width = Math.max(320, canvas.clientWidth);
+    const height = Math.max(360, canvas.clientHeight);
+    for (let pass = 0; pass < 14; pass += 1) {
+      for (let left = 0; left < visibleMemories.length; left += 1) {
+        for (let right = left + 1; right < visibleMemories.length; right += 1) {
+          const first = visibleMemories[left];
+          const second = visibleMemories[right];
+          const firstScale = (.48 + first.depth * .48) * 1.15;
+          const secondScale = (.48 + second.depth * .48) * 1.15;
+          const firstY = flowerGround(first, height) - (7 + first.weight * 17) * firstScale;
+          const secondY = flowerGround(second, height) - (7 + second.weight * 17) * secondScale;
+          const clearance = (3.35 + first.depth * 1.3) * firstScale
+            + (3.35 + second.depth * 1.3) * secondScale + 2;
+          const verticalDistance = Math.abs(firstY - secondY);
+          if (verticalDistance >= clearance) continue;
+          const requiredGap = Math.sqrt(clearance ** 2 - verticalDistance ** 2) / width;
+          const firstX = visibleX.get(first.id);
+          const secondX = visibleX.get(second.id);
+          const distance = Math.abs(firstX - secondX);
+          if (distance >= requiredGap) continue;
+          const direction = firstX === secondX ? (hashText(first.id) < hashText(second.id) ? -1 : 1) : Math.sign(firstX - secondX);
+          const shift = (requiredGap - distance) * .52;
+          visibleX.set(first.id, Math.max(.04, Math.min(.96, firstX + direction * shift)));
+          visibleX.set(second.id, Math.max(.04, Math.min(.96, secondX - direction * shift)));
+        }
+      }
+    }
     return;
   }
   const ordered = [...visibleMemories].sort((a, b) => a.x - b.x);
