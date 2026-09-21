@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#f4f5ef" />
     <meta name="garden-allow-synthetic" content="true" />
     <title>我们的记忆花田 · 简易原型</title>
-    <link rel="stylesheet" href="./styles.css?v=28" />
+    <link rel="stylesheet" href="./styles.css?v=29" />
   </head>
   <body>
     <main class="garden-shell">
@@ -33,6 +33,11 @@
             <span class="legend-scale">安静 <i></i><i></i><i></i><i></i> 丰盛</span>
             <button id="next-month" type="button" aria-label="下个月">→</button>
           </div>
+          <div class="season-preview" aria-label="季节环境预览">
+            <small>仅预览环境</small><button type="button" data-season-preview="auto">随月份</button>
+            <button type="button" data-season-preview="3">春</button><button type="button" data-season-preview="6">夏</button>
+            <button type="button" data-season-preview="9">秋</button><button type="button" data-season-preview="0">冬</button>
+          </div>
           <div class="calendar-weekdays" aria-hidden="true">
             <span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span>
           </div>
@@ -57,6 +62,6 @@
         <span><i class="reflection"></i>反思</span>
       </footer>
     </main>
-    <script src="./garden.js?v=31"></script>
+    <script src="./garden.js?v=32"></script>
   </body>
 </html>

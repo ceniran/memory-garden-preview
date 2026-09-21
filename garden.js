@@ -14,6 +14,7 @@ const SEASONS = {
   autumn: { skyTop: [251,249,240], skyBottom: [235,235,211], fog: [143,157,93], rain: [105,126,76], wet: [111,123,77], gravity: .94, rainWidth: .9 }
 };
 let seasonPalette = SEASONS.spring;
+let seasonPreviewMonth = null;
 
 const canvas = document.querySelector('#garden');
 const context = canvas.getContext('2d');
@@ -69,9 +70,13 @@ function paletteForMonth(month) {
 }
 
 function applySeason() {
-  seasonPalette = paletteForMonth(calendarMonth.getUTCMonth());
+  seasonPalette = paletteForMonth(seasonPreviewMonth ?? calendarMonth.getUTCMonth());
   document.documentElement.style.setProperty('--season-sky-top', hex(seasonPalette.skyTop));
   document.documentElement.style.setProperty('--season-sky-bottom', hex(seasonPalette.skyBottom));
+  document.querySelectorAll('[data-season-preview]').forEach(button => {
+    const value = button.dataset.seasonPreview;
+    button.classList.toggle('is-active', value === (seasonPreviewMonth === null ? 'auto' : String(seasonPreviewMonth)));
+  });
 }
 
 function makeMemories() {
@@ -296,6 +301,7 @@ function buildCalendar() {
 }
 
 function changeMonth(offset) {
+  seasonPreviewMonth = null;
   calendarMonth = new Date(Date.UTC(calendarMonth.getUTCFullYear(), calendarMonth.getUTCMonth() + offset, 1));
   buildCalendar();
   showCalendarMonth();
@@ -648,6 +654,11 @@ document.querySelector('#regrow').addEventListener('click', () => {
 });
 previousMonthButton.addEventListener('click', () => changeMonth(-1));
 nextMonthButton.addEventListener('click', () => changeMonth(1));
+document.querySelectorAll('[data-season-preview]').forEach(button => button.addEventListener('click', () => {
+  seasonPreviewMonth = button.dataset.seasonPreview === 'auto' ? null : Number(button.dataset.seasonPreview);
+  applySeason();
+  startGrowth(visibleMemories);
+}));
 calendarToggle.addEventListener('click', () => {
   const open = calendarDisclosure.getAttribute('data-open') === 'true';
   calendarDisclosure.setAttribute('data-open', String(!open));
