@@ -211,26 +211,20 @@ function memoryX(memory) {
 function layoutVisibleMemories() {
   visibleX = new Map();
   if (!selectedDate) {
-    const points = visibleMemories.map(memory => ({ memory, x: memory.x }));
-    const minimumGap = Math.max(.014, .026 - points.length * .0001);
-    for (let pass = 0; pass < 12; pass += 1) {
-      for (let left = 0; left < points.length; left += 1) {
-        for (let right = left + 1; right < points.length; right += 1) {
-          const first = points[left];
-          const second = points[right];
-          if (Math.abs(first.memory.depth - second.memory.depth) > .075) continue;
-          const distance = Math.abs(first.x - second.x);
-          if (distance >= minimumGap) continue;
-          const direction = first.x === second.x
-            ? (hashText(first.memory.id) < hashText(second.memory.id) ? -1 : 1)
-            : Math.sign(first.x - second.x);
-          const shift = (minimumGap - distance) * .52;
-          first.x = Math.max(.04, Math.min(.96, first.x + direction * shift));
-          second.x = Math.max(.04, Math.min(.96, second.x - direction * shift));
-        }
-      }
-    }
-    points.forEach(point => visibleX.set(point.memory.id, point.x));
+    const layerCount = Math.max(5, Math.min(12, Math.ceil(Math.sqrt(visibleMemories.length))));
+    const layers = Array.from({ length: layerCount }, () => []);
+    visibleMemories.forEach(memory => {
+      const layer = Math.min(layerCount - 1, Math.floor(memory.depth * layerCount));
+      layers[layer].push(memory);
+    });
+    layers.forEach(layer => {
+      layer.sort((a, b) => a.x - b.x);
+      layer.forEach((memory, index) => {
+        const evenPosition = .06 + ((index + .5) / layer.length) * .88;
+        const jitter = Math.sin(hashText(memory.id) * .001) * Math.min(.009, .055 / layer.length);
+        visibleX.set(memory.id, Math.max(.05, Math.min(.95, evenPosition + jitter)));
+      });
+    });
     return;
   }
   const ordered = [...visibleMemories].sort((a, b) => a.x - b.x);
