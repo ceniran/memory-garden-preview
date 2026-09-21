@@ -22,6 +22,7 @@ const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 let seed = 20260920;
 let memories = [];
+let visibleMemories = [];
 let growthEvents = [];
 let grassTufts = [];
 let selectedDate = null;
@@ -128,8 +129,8 @@ function makeRealMemories(items) {
   return result;
 }
 
-function makeGrassTufts() {
-  return memories
+function makeGrassTufts(items = visibleMemories) {
+  return items
     .filter((memory, index) => {
       const chance = ((memory.dayIndex * 37 + index * 17) % 101) / 100;
       return chance < .025 + memory.density * .14;
@@ -165,6 +166,23 @@ function makeGrowthEvents(items) {
 function startGrowth(items) {
   growthEvents = makeGrowthEvents(items);
   startTime = performance.now();
+}
+
+function memoriesInCalendarMonth() {
+  const prefix = `${calendarMonth.getUTCFullYear()}-${String(calendarMonth.getUTCMonth() + 1).padStart(2, '0')}-`;
+  return memories.filter(memory => memory.date.startsWith(prefix));
+}
+
+function showCalendarMonth({ replay = true } = {}) {
+  selectedDate = null;
+  document.querySelectorAll('.day.is-active').forEach(day => day.classList.remove('is-active'));
+  visibleMemories = memoriesInCalendarMonth();
+  grassTufts = makeGrassTufts(visibleMemories);
+  if (replay) startGrowth(visibleMemories);
+  dateLabel.textContent = `${calendarMonth.getUTCFullYear()}年${calendarMonth.getUTCMonth() + 1}月`;
+  memoryLabel.textContent = visibleMemories.length
+    ? `这个月长出 ${visibleMemories.length} 朵记忆花。点选日期，可以只看那一天。`
+    : '这个月没有留下花，土地只是安静地休息。';
 }
 
 function buildCalendar() {
@@ -225,6 +243,7 @@ function buildCalendar() {
 function changeMonth(offset) {
   calendarMonth = new Date(Date.UTC(calendarMonth.getUTCFullYear(), calendarMonth.getUTCMonth() + offset, 1));
   buildCalendar();
+  showCalendarMonth();
 }
 
 function selectDay(key, button) {
@@ -232,13 +251,15 @@ function selectDay(key, button) {
   document.querySelectorAll('.day.is-active').forEach(day => day.classList.remove('is-active'));
   if (selectedDate) button.classList.add('is-active');
   const selected = memories.filter(memory => memory.date === selectedDate);
-  startGrowth(selectedDate ? selected : memories);
-  dateLabel.textContent = selectedDate || '全年记忆';
+  visibleMemories = selectedDate ? selected : memoriesInCalendarMonth();
+  grassTufts = makeGrassTufts(visibleMemories);
+  startGrowth(visibleMemories);
+  dateLabel.textContent = selectedDate || `${calendarMonth.getUTCFullYear()}年${calendarMonth.getUTCMonth() + 1}月`;
   memoryLabel.textContent = selectedDate
     ? selected.length
       ? `这一天长出 ${selected.length} 朵花：${[...new Set(selected.map(item => TYPES[item.type].label))].join('、')}。`
       : '这一天没有留下花，土地只是安静地休息。'
-    : '点击上方日期，看看那一天长出了什么。';
+    : `这个月长出 ${visibleMemories.length} 朵记忆花。点选日期，可以只看那一天。`;
 }
 
 function resizeCanvas() {
@@ -404,32 +425,46 @@ function flowerPath(x, ground, height, color, phase, highlighted, progress, scal
 }
 
 function drawLocalHaze(width, height, elapsed) {
-  for (let index = 0; index < memories.length; index += 4) {
-    const memory = memories[index];
+  visibleMemories.forEach((memory, index) => {
     const depth = memory.depth;
     const progress = growthProgress(memory, height, elapsed);
-    const hazeProgress = Math.min(1, Math.max(0, (progress - .58) / .42));
-    if (!hazeProgress) continue;
-    const dimmed = selectedDate && memory.date !== selectedDate;
+    const hazeProgress = Math.min(1, Math.max(0, (progress - .42) / .58));
+    if (!hazeProgress) return;
     const x = memory.x * width;
     const y = flowerGround(memory, height);
-    const densityScale = .62 + memory.density * .58;
-    const patchWidth = (24 + depth * 48) * densityScale * (.72 + hazeProgress * .28);
-    const patchHeight = (7 + depth * 12) * densityScale * (.72 + hazeProgress * .28);
+
     context.save();
-    context.globalAlpha = hazeProgress * (.38 + memory.density * .72) * (dimmed ? .08 : 1);
-    context.translate(x, y);
-    context.scale(patchWidth, patchHeight);
-    const haze = context.createRadialGradient(0, 0, 0, 0, 0, 1);
-    haze.addColorStop(0, `rgba(92, 174, 109, ${.2 + depth * .09})`);
-    haze.addColorStop(.48, `rgba(119, 191, 130, ${.12 + depth * .07})`);
-    haze.addColorStop(1, 'rgba(151, 207, 157, 0)');
-    context.fillStyle = haze;
+    context.globalAlpha = hazeProgress * (.48 + depth * .28);
+    context.translate(x + Math.sin(memory.sway) * 1.8, y + 1.2);
+    context.scale(9 + depth * 10, 2.5 + depth * 2.2);
+    const rootGlow = context.createRadialGradient(-.12, -.08, .04, 0, 0, 1);
+    rootGlow.addColorStop(0, 'rgba(82, 155, 91, .28)');
+    rootGlow.addColorStop(.36, 'rgba(111, 181, 119, .17)');
+    rootGlow.addColorStop(.76, 'rgba(137, 194, 141, .065)');
+    rootGlow.addColorStop(1, 'rgba(151, 207, 157, 0)');
+    context.fillStyle = rootGlow;
     context.beginPath();
     context.arc(0, 0, 1, 0, Math.PI * 2);
     context.fill();
     context.restore();
-  }
+
+    if (index % 3 !== 0 || memory.density < .12) return;
+    const densityScale = .7 + memory.density * .7;
+    context.save();
+    context.globalAlpha = hazeProgress * (.12 + memory.density * .2);
+    context.translate(x + Math.cos(memory.sway) * 4, y + 2);
+    context.rotate(Math.sin(memory.sway) * .06);
+    context.scale((28 + depth * 34) * densityScale, (6 + depth * 8) * densityScale);
+    const clusterGlow = context.createRadialGradient(-.18, -.08, .08, 0, 0, 1);
+    clusterGlow.addColorStop(0, 'rgba(76, 153, 88, .2)');
+    clusterGlow.addColorStop(.52, 'rgba(111, 180, 119, .1)');
+    clusterGlow.addColorStop(1, 'rgba(151, 207, 157, 0)');
+    context.fillStyle = clusterGlow;
+    context.beginPath();
+    context.arc(0, 0, 1, 0, Math.PI * 2);
+    context.fill();
+    context.restore();
+  });
 }
 
 function flowerGround(memory, height) {
@@ -514,13 +549,12 @@ function draw(now) {
   drawLocalHaze(width, height, elapsed);
   drawGrass(width, height, elapsed);
 
-  memories.forEach((memory, index) => {
+  visibleMemories.forEach(memory => {
     const highlighted = selectedDate === memory.date;
-    const dimmed = selectedDate && !highlighted;
     const depth = memory.depth;
     const scale = .48 + depth * .48;
     context.save();
-    context.globalAlpha = dimmed ? .055 : highlighted ? 1 : .22 + depth * .68;
+    context.globalAlpha = highlighted ? 1 : .22 + depth * .68;
     const x = memory.x * width;
     const localGround = flowerGround(memory, height);
     const progress = growthProgress(memory, height, elapsed);
@@ -535,11 +569,7 @@ function draw(now) {
 }
 
 document.querySelector('#regrow').addEventListener('click', () => {
-  selectedDate = null;
-  document.querySelectorAll('.day.is-active').forEach(day => day.classList.remove('is-active'));
-  dateLabel.textContent = '全年记忆';
-  memoryLabel.textContent = '雨正错落落进花田；落在哪里，哪里的记忆花就开始生长。';
-  startGrowth(memories);
+  showCalendarMonth();
 });
 previousMonthButton.addEventListener('click', () => changeMonth(-1));
 nextMonthButton.addEventListener('click', () => changeMonth(1));
@@ -574,10 +604,9 @@ async function initialize() {
       calendarMonth = new Date(Date.UTC(latestDate.getUTCFullYear(), latestDate.getUTCMonth(), 1));
     }
   }
-  grassTufts = makeGrassTufts();
   buildCalendar();
   resizeCanvas();
-  startGrowth(memories);
+  showCalendarMonth();
   requestAnimationFrame(draw);
 }
 
