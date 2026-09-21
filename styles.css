@@ -14,7 +14,12 @@
   --acc-collapse: 250ms;
   --acc-chevron: 250ms;
   --acc-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --season-sky-top: #fbfcf7;
+  --season-sky-bottom: #e8f3e9;
 }
+
+@property --season-sky-top { syntax: "<color>"; inherits: true; initial-value: #fbfcf7; }
+@property --season-sky-bottom { syntax: "<color>"; inherits: true; initial-value: #e8f3e9; }
 
 * { box-sizing: border-box; }
 
@@ -235,7 +240,8 @@ h1 {
   margin-top: 12px;
   overflow: hidden;
   border-radius: 26px;
-  background: transparent;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--season-sky-top) 64%, transparent), color-mix(in srgb, var(--season-sky-bottom) 46%, transparent));
+  transition: --season-sky-top var(--duration-very-slow) var(--ease-smooth-out), --season-sky-bottom var(--duration-very-slow) var(--ease-smooth-out);
 }
 
 #garden { display: block; width: 100%; height: 500px; }
@@ -277,4 +283,5 @@ h1 {
     transition: none !important;
   }
   .month-preview i { transform: none !important; }
+  .garden-panel { transition: none !important; }
 }

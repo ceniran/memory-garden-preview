@@ -7,6 +7,14 @@ const TYPES = {
   reflection: { color: '#b59cda', label: '反思' }
 };
 
+const SEASONS = {
+  winter: { skyTop: [248,250,251], skyBottom: [229,237,240], fog: [154,184,189], rain: [79,126,141], wet: [96,135,137], gravity: .9, rainWidth: .86 },
+  spring: { skyTop: [251,252,247], skyBottom: [232,243,233], fog: [104,174,119], rain: [55,132,86], wet: [73,137,91], gravity: 1, rainWidth: 1 },
+  summer: { skyTop: [249,252,245], skyBottom: [221,239,220], fog: [78,161,96], rain: [44,119,76], wet: [58,126,78], gravity: 1.14, rainWidth: 1.18 },
+  autumn: { skyTop: [251,249,240], skyBottom: [235,235,211], fog: [143,157,93], rain: [105,126,76], wet: [111,123,77], gravity: .94, rainWidth: .9 }
+};
+let seasonPalette = SEASONS.spring;
+
 const canvas = document.querySelector('#garden');
 const context = canvas.getContext('2d');
 const calendar = document.querySelector('#calendar');
@@ -42,6 +50,28 @@ function random() {
 
 function dateKey(date) {
   return date.toISOString().slice(0, 10);
+}
+
+function mixNumber(from, to, amount) { return from + (to - from) * amount; }
+function mixRgb(from, to, amount) { return from.map((value, index) => Math.round(mixNumber(value, to[index], amount))); }
+function rgb(values, alpha = 1) { return `rgba(${values.join(',')},${alpha})`; }
+function hex(values) { return `#${values.map(value => value.toString(16).padStart(2, '0')).join('')}`; }
+
+function paletteForMonth(month) {
+  const anchors = [SEASONS.winter, SEASONS.spring, SEASONS.summer, SEASONS.autumn, SEASONS.winter];
+  const segment = Math.floor(month / 3);
+  const amount = (month % 3) / 3;
+  const from = anchors[segment];
+  const to = anchors[segment + 1];
+  return { skyTop: mixRgb(from.skyTop, to.skyTop, amount), skyBottom: mixRgb(from.skyBottom, to.skyBottom, amount),
+    fog: mixRgb(from.fog, to.fog, amount), rain: mixRgb(from.rain, to.rain, amount), wet: mixRgb(from.wet, to.wet, amount),
+    gravity: mixNumber(from.gravity, to.gravity, amount), rainWidth: mixNumber(from.rainWidth, to.rainWidth, amount) };
+}
+
+function applySeason() {
+  seasonPalette = paletteForMonth(calendarMonth.getUTCMonth());
+  document.documentElement.style.setProperty('--season-sky-top', hex(seasonPalette.skyTop));
+  document.documentElement.style.setProperty('--season-sky-bottom', hex(seasonPalette.skyBottom));
 }
 
 function makeMemories() {
@@ -200,6 +230,7 @@ function showCalendarMonth({ replay = true } = {}) {
   selectedDate = null;
   document.querySelectorAll('.day.is-active').forEach(day => day.classList.remove('is-active'));
   visibleMemories = memoriesInCalendarMonth();
+  applySeason();
   layoutVisibleMemories();
   grassTufts = makeGrassTufts(visibleMemories);
   if (replay) startGrowth(visibleMemories);
@@ -463,10 +494,10 @@ function drawLocalHaze(width, height, elapsed) {
     context.translate(x + Math.sin(memory.sway) * 1.8, y + 1.2);
     context.scale(9 + depth * 10, 2.5 + depth * 2.2);
     const rootGlow = context.createRadialGradient(-.12, -.08, .04, 0, 0, 1);
-    rootGlow.addColorStop(0, 'rgba(82, 155, 91, .28)');
-    rootGlow.addColorStop(.36, 'rgba(111, 181, 119, .17)');
-    rootGlow.addColorStop(.76, 'rgba(137, 194, 141, .065)');
-    rootGlow.addColorStop(1, 'rgba(151, 207, 157, 0)');
+    rootGlow.addColorStop(0, rgb(seasonPalette.fog, .28));
+    rootGlow.addColorStop(.36, rgb(seasonPalette.fog, .17));
+    rootGlow.addColorStop(.76, rgb(seasonPalette.fog, .065));
+    rootGlow.addColorStop(1, rgb(seasonPalette.fog, 0));
     context.fillStyle = rootGlow;
     context.beginPath();
     context.arc(0, 0, 1, 0, Math.PI * 2);
@@ -481,9 +512,9 @@ function drawLocalHaze(width, height, elapsed) {
     context.rotate(Math.sin(memory.sway) * .06);
     context.scale((28 + depth * 34) * densityScale, (6 + depth * 8) * densityScale);
     const clusterGlow = context.createRadialGradient(-.18, -.08, .08, 0, 0, 1);
-    clusterGlow.addColorStop(0, 'rgba(76, 153, 88, .2)');
-    clusterGlow.addColorStop(.52, 'rgba(111, 180, 119, .1)');
-    clusterGlow.addColorStop(1, 'rgba(151, 207, 157, 0)');
+    clusterGlow.addColorStop(0, rgb(seasonPalette.fog, .2));
+    clusterGlow.addColorStop(.52, rgb(seasonPalette.fog, .1));
+    clusterGlow.addColorStop(1, rgb(seasonPalette.fog, 0));
     context.fillStyle = clusterGlow;
     context.beginPath();
     context.arc(0, 0, 1, 0, Math.PI * 2);
@@ -501,7 +532,7 @@ function drawRipple(x, ground, age) {
   const progress = age / 460;
   context.save();
   context.globalAlpha = (1 - progress) * .32;
-  context.strokeStyle = '#4f9870';
+  context.strokeStyle = rgb(seasonPalette.rain, .78);
   context.lineWidth = 1.2;
   context.beginPath();
   context.ellipse(x, ground + 1, 3 + progress * 16, 1 + progress * 4, 0, 0, Math.PI * 2);
@@ -509,9 +540,25 @@ function drawRipple(x, ground, age) {
   context.restore();
 }
 
+function drawWetMark(x, ground, age) {
+  if (age < 0 || age > 2300) return;
+  const arrival = Math.min(1, age / 180);
+  const fading = 1 - Math.max(0, age - 900) / 1400;
+  context.save();
+  context.globalAlpha = arrival * Math.max(0, fading) * .22;
+  context.translate(x, ground + 2);
+  context.scale(16, 4.6);
+  const wet = context.createRadialGradient(-.12, -.08, .04, 0, 0, 1);
+  wet.addColorStop(0, rgb(seasonPalette.wet, .3));
+  wet.addColorStop(.58, rgb(seasonPalette.wet, .13));
+  wet.addColorStop(1, rgb(seasonPalette.wet, 0));
+  context.fillStyle = wet;
+  context.beginPath(); context.arc(0, 0, 1, 0, Math.PI * 2); context.fill(); context.restore();
+}
+
 function eventTiming(event, ground) {
   const distance = Math.max(1, ground + 30);
-  const fallDuration = Math.sqrt(2 * distance / event.gravity);
+  const fallDuration = Math.sqrt(2 * distance / (event.gravity * seasonPalette.gravity));
   return { fallDuration, landing: event.delay + fallDuration };
 }
 
@@ -524,16 +571,19 @@ function drawGrowthRain(width, height, elapsed) {
     const timing = eventTiming(event, ground);
     const age = elapsed - event.delay;
     if (age < 0 || age >= timing.fallDuration) {
-      drawRipple(memoryX(event.memory) * width, ground, elapsed - timing.landing);
+      const landingAge = elapsed - timing.landing;
+      drawWetMark(memoryX(event.memory) * width, ground, landingAge);
+      drawRipple(memoryX(event.memory) * width, ground, landingAge);
       return;
     }
     falling.push(event);
     const x = memoryX(event.memory) * width + event.drift * (1 - age / timing.fallDuration);
-    const y = -30 + .5 * event.gravity * age * age;
-    const speed = event.gravity * age;
+    const gravity = event.gravity * seasonPalette.gravity;
+    const y = -30 + .5 * gravity * age * age;
+    const speed = gravity * age;
     context.globalAlpha = .2 + Math.min(.42, speed * 120);
-    context.strokeStyle = '#3f8760';
-    context.lineWidth = 1.1;
+    context.strokeStyle = rgb(seasonPalette.rain, .9);
+    context.lineWidth = 1.1 * seasonPalette.rainWidth;
     context.beginPath();
     context.moveTo(x, y - 4 - speed * 10);
     context.lineTo(x, y + 5);
