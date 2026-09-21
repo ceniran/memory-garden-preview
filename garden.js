@@ -228,7 +228,7 @@ function layoutVisibleMemories() {
     });
     const width = Math.max(320, canvas.clientWidth);
     const height = Math.max(360, canvas.clientHeight);
-    for (let pass = 0; pass < 14; pass += 1) {
+    for (let pass = 0; pass < 40; pass += 1) {
       for (let left = 0; left < visibleMemories.length; left += 1) {
         for (let right = left + 1; right < visibleMemories.length; right += 1) {
           const first = visibleMemories[left];
