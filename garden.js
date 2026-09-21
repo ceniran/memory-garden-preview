@@ -147,10 +147,13 @@ function makeGrassTufts() {
 
 function makeGrowthEvents(items) {
   const fullGarden = items.length > 10;
-  return items.map((memory, order) => ({
+  const ordered = [...items].sort((a, b) =>
+    a.dayIndex - b.dayIndex || a.date.localeCompare(b.date) || a.x - b.x
+  );
+  return ordered.map((memory, order) => ({
     memory,
     delay: fullGarden
-      ? 140 + ((memory.dayIndex * 97 + order * 53) % 997) / 996 * 5200
+      ? 140 + (order / Math.max(1, ordered.length - 1)) * 5200
       : 140 + order * 260,
     gravity: .00072 + (order % 4) * .00005,
     drift: ((order % 3) - 1) * 5
@@ -170,8 +173,6 @@ function buildCalendar() {
   const month = calendarMonth.getUTCMonth();
   const first = new Date(Date.UTC(year, month, 1));
   const leading = (first.getUTCDay() + 6) % 7;
-  const gridStart = new Date(first);
-  gridStart.setUTCDate(first.getUTCDate() - leading);
   monthLabel.textContent = `${year}年${month + 1}月`;
   monthPreview.replaceChildren();
   const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
@@ -186,9 +187,14 @@ function buildCalendar() {
   calendar.classList.remove('is-changing');
   void calendar.offsetWidth;
   calendar.classList.add('is-changing');
-  for (let index = 0; index < 42; index += 1) {
-    const date = new Date(gridStart);
-    date.setUTCDate(gridStart.getUTCDate() + index);
+  for (let index = 0; index < leading; index += 1) {
+    const spacer = document.createElement('span');
+    spacer.className = 'day-spacer';
+    spacer.setAttribute('aria-hidden', 'true');
+    calendar.append(spacer);
+  }
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    const date = new Date(Date.UTC(year, month, day));
     const key = dateKey(date);
     const count = counts.get(key) || 0;
     const button = document.createElement('button');
@@ -196,8 +202,7 @@ function buildCalendar() {
     button.className = 'day';
     button.dataset.date = key;
     button.dataset.level = String(Math.min(4, count));
-    button.dataset.outside = date.getUTCMonth() === month ? 'false' : 'true';
-    button.style.setProperty('--order', index);
+    button.style.setProperty('--order', leading + day - 1);
     button.setAttribute('role', 'gridcell');
     button.setAttribute('aria-label', `${key}，${count ? `${count} 朵记忆花` : '土地休息'}`);
     const dayNumber = document.createElement('span');
@@ -209,12 +214,6 @@ function buildCalendar() {
       button.append(flowerCount);
     }
     button.addEventListener('click', () => {
-      if (date.getUTCMonth() !== month) {
-        calendarMonth = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
-        buildCalendar();
-        selectDay(key, calendar.querySelector(`[data-date="${key}"]`));
-        return;
-      }
       selectDay(key, button);
     });
     calendar.append(button);
