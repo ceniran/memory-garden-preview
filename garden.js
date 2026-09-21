@@ -178,7 +178,9 @@ function buildCalendar() {
   for (let day = 1; day <= daysInMonth; day += 1) {
     const key = dateKey(new Date(Date.UTC(year, month, day)));
     const mark = document.createElement('i');
+    mark.dataset.date = key;
     mark.dataset.level = String(Math.min(4, counts.get(key) || 0));
+    mark.setAttribute('aria-label', `${key}，${counts.get(key) || 0} 朵记忆花`);
     monthPreview.append(mark);
   }
   calendar.classList.remove('is-changing');
@@ -453,7 +455,7 @@ function eventTiming(event, ground) {
 }
 
 function drawGrowthRain(width, height, elapsed) {
-  let rainingDate = null;
+  const falling = [];
   context.save();
   context.lineCap = 'round';
   growthEvents.forEach(event => {
@@ -464,7 +466,7 @@ function drawGrowthRain(width, height, elapsed) {
       drawRipple(event.memory.x * width, ground, elapsed - timing.landing);
       return;
     }
-    rainingDate = event.memory.date;
+    falling.push(event);
     const x = event.memory.x * width + event.drift * (1 - age / timing.fallDuration);
     const y = -30 + .5 * event.gravity * age * age;
     const speed = event.gravity * age;
@@ -477,8 +479,11 @@ function drawGrowthRain(width, height, elapsed) {
     context.stroke();
   });
   context.restore();
+  const rainingDate = falling.sort((a, b) => b.delay - a.delay)[0]?.memory.date || null;
   document.querySelectorAll('.day.is-raining').forEach(day => day.classList.remove('is-raining'));
+  document.querySelectorAll('.month-preview i.is-raining').forEach(day => day.classList.remove('is-raining'));
   if (rainingDate) document.querySelector(`.day[data-date="${rainingDate}"]`)?.classList.add('is-raining');
+  if (rainingDate) document.querySelector(`.month-preview i[data-date="${rainingDate}"]`)?.classList.add('is-raining');
 }
 
 function growthProgress(memory, height, elapsed) {

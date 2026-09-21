@@ -94,12 +94,33 @@ h1 {
 .calendar-summary strong { font-family: Georgia, "Songti SC", serif; font-size: 17px; font-weight: 520; }
 .calendar-summary small { color: var(--muted); font-size: 9px; font-weight: 500; }
 .calendar-summary svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; }
-.month-preview { display: grid; grid-template-columns: repeat(31, minmax(0, 1fr)); gap: 2px; margin-top: 13px; }
-.month-preview i { height: 8px; border-radius: 3px; background: #edf1ea; }
+.month-preview {
+  display: grid;
+  grid-template-columns: repeat(16, minmax(0, 1fr));
+  gap: 4px;
+  margin-top: 14px;
+}
+.month-preview i {
+  position: relative;
+  height: clamp(15px, 3.8vw, 21px);
+  border-radius: 5px;
+  background: #edf1ea;
+  box-shadow: inset 0 0 0 0 rgba(40,62,48,0);
+  transform: scale(1);
+  transition:
+    transform var(--duration-fast) var(--ease-smooth-out),
+    box-shadow var(--duration-fast) var(--ease-smooth-out),
+    background-color var(--duration-fast) var(--ease-in-out);
+}
 .month-preview i[data-level="1"] { background: var(--green-1); }
 .month-preview i[data-level="2"] { background: var(--green-2); }
 .month-preview i[data-level="3"] { background: var(--green-3); }
 .month-preview i[data-level="4"] { background: var(--green-4); }
+.month-preview i.is-raining {
+  z-index: 1;
+  box-shadow: inset 0 0 0 2px #2f5139, 0 0 0 3px rgba(94,154,105,.12);
+  transform: scale(1.08);
+}
 
 /* grid-template-rows 0fr → 1fr gives a clean height animation
    with no JS measurement; the inner element clips overflow. */
@@ -245,4 +266,5 @@ h1 {
   .t-acc-panel, .t-acc-panel-inner, .t-acc-chevron {
     transition: none !important;
   }
+  .month-preview i { transform: none !important; }
 }
