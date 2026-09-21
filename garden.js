@@ -217,10 +217,11 @@ function layoutVisibleMemories() {
       const layer = Math.min(layerCount - 1, Math.floor(memory.depth * layerCount));
       layers[layer].push(memory);
     });
-    layers.forEach(layer => {
+    layers.forEach((layer, layerIndex) => {
       layer.sort((a, b) => a.x - b.x);
       layer.forEach((memory, index) => {
-        const evenPosition = .06 + ((index + .5) / layer.length) * .88;
+        const phase = (layerIndex * .381966) % 1;
+        const evenPosition = .06 + (((index + .5 + phase) % layer.length) / layer.length) * .88;
         const jitter = Math.sin(hashText(memory.id) * .001) * Math.min(.009, .055 / layer.length);
         visibleX.set(memory.id, Math.max(.05, Math.min(.95, evenPosition + jitter)));
       });
