@@ -213,7 +213,7 @@ function layoutVisibleMemories() {
   if (!selectedDate) {
     const points = visibleMemories.map(memory => ({ memory, x: memory.x }));
     const minimumGap = Math.max(.014, .026 - points.length * .0001);
-    for (let pass = 0; pass < 5; pass += 1) {
+    for (let pass = 0; pass < 12; pass += 1) {
       for (let left = 0; left < points.length; left += 1) {
         for (let right = left + 1; right < points.length; right += 1) {
           const first = points[left];
