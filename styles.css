@@ -171,7 +171,15 @@ h1 {
 .month-nav strong { font-family: Georgia, "Songti SC", serif; font-size: 17px; font-weight: 520; }
 .month-nav button { width: 30px; height: 30px; border: 1px solid var(--line); border-radius: 9px; color: #607067; background: rgba(255,255,255,.6); cursor: pointer; }
 .calendar-scale { justify-content: flex-end; margin: 10px 0 0; }
-.calendar-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); margin-bottom: 5px; color: #8a928c; font-size: 9px; text-align: center; }
+.calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  width: min(100%, 280px);
+  margin: 0 auto 5px;
+  color: #8a928c;
+  font-size: 9px;
+  text-align: center;
+}
 
 .legend-scale { display: inline-flex; align-items: center; gap: 4px; }
 .legend i { width: 9px; height: 9px; border-radius: 3px; }

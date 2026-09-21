@@ -150,10 +150,12 @@ function makeGrowthEvents(items) {
   const ordered = [...items].sort((a, b) =>
     a.dayIndex - b.dayIndex || a.date.localeCompare(b.date) || a.x - b.x
   );
+  const dates = [...new Set(ordered.map(memory => memory.date))];
+  const dateOrder = new Map(dates.map((date, order) => [date, order]));
   return ordered.map((memory, order) => ({
     memory,
     delay: fullGarden
-      ? 140 + (order / Math.max(1, ordered.length - 1)) * 5200
+      ? 140 + (dateOrder.get(memory.date) / Math.max(1, dates.length - 1)) * 5200
       : 140 + order * 260,
     gravity: .00072 + (order % 4) * .00005,
     drift: ((order % 3) - 1) * 5
@@ -479,10 +481,18 @@ function drawGrowthRain(width, height, elapsed) {
   });
   context.restore();
   const rainingDate = falling.sort((a, b) => b.delay - a.delay)[0]?.memory.date || null;
+  const rainingMonth = rainingDate?.slice(0, 7) || null;
+  const visibleMonth = `${calendarMonth.getUTCFullYear()}-${String(calendarMonth.getUTCMonth() + 1).padStart(2, '0')}`;
+  if (rainingMonth && rainingMonth !== visibleMonth) {
+    calendarMonth = new Date(`${rainingMonth}-01T00:00:00Z`);
+    buildCalendar();
+  }
   document.querySelectorAll('.day.is-raining').forEach(day => day.classList.remove('is-raining'));
   document.querySelectorAll('.month-preview i.is-raining').forEach(day => day.classList.remove('is-raining'));
   if (rainingDate) document.querySelector(`.day[data-date="${rainingDate}"]`)?.classList.add('is-raining');
   if (rainingDate) document.querySelector(`.month-preview i[data-date="${rainingDate}"]`)?.classList.add('is-raining');
+  calendar.dataset.rainingDate = rainingDate || '';
+  monthPreview.dataset.rainingDate = rainingDate || '';
 }
 
 function growthProgress(memory, height, elapsed) {
