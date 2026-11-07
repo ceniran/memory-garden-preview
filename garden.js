@@ -240,15 +240,17 @@ function layoutVisibleMemories() {
   const placed = [];
   const ordered = [...visibleMemories].sort((a, b) => hashText(a.id) - hashText(b.id));
   const scaleBoost = selectedDate ? 1.34 : 1.15;
-  const groundStart = selectedDate ? .54 : .49;
-  const groundSpan = selectedDate ? .34 : .41;
   ordered.forEach(memory => {
     const scale = (.48 + memory.depth * .48) * scaleBoost;
     const crownRadius = (3.35 + memory.depth * 1.3) * scale;
+    const groundBase = .52 + memory.depth * .35;
+    const groundJitter = selectedDate ? .06 : .05;
     let best = null;
     for (let attempt = 0; attempt < 56; attempt += 1) {
       const x = .055 + stableUnit(`${memory.id}-x-${attempt}`) * .89;
-      const ground = groundStart + stableUnit(`${memory.id}-y-${attempt}`) * groundSpan;
+      const ground = Math.max(.47, Math.min(.92,
+        groundBase + (stableUnit(`${memory.id}-y-${attempt}`) - .5) * groundJitter * 2
+      ));
       const crownY = ground * height - stemHeight(memory, scale);
       const nearest = placed.reduce((distance, item) => {
         const dx = (x - item.x) * width;
