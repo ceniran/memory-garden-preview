@@ -230,46 +230,39 @@ function stemHeight(memory, scale) {
 function layoutVisibleMemories() {
   visibleX = new Map();
   visibleGround = new Map();
-  if (!selectedDate) {
-    const width = Math.max(320, canvas.clientWidth);
-    const height = Math.max(360, canvas.clientHeight);
-    const placed = [];
-    const ordered = [...visibleMemories].sort((a, b) => hashText(a.id) - hashText(b.id));
-    ordered.forEach(memory => {
-      const scale = (.48 + memory.depth * .48) * 1.15;
-      const crownRadius = (3.35 + memory.depth * 1.3) * scale;
-      let best = null;
-      for (let attempt = 0; attempt < 48; attempt += 1) {
-        const x = .055 + stableUnit(`${memory.id}-x-${attempt}`) * .89;
-        const ground = .49 + stableUnit(`${memory.id}-y-${attempt}`) * .41;
-        const crownY = ground * height - stemHeight(memory, scale);
-        const nearest = placed.reduce((distance, item) => {
-          const dx = (x - item.x) * width;
-          const dy = crownY - item.crownY;
-          const required = crownRadius + item.radius + 4;
-          return Math.min(distance, Math.hypot(dx, dy) - required);
-        }, Number.POSITIVE_INFINITY);
-        const edgeRoom = Math.min(x - .035, .965 - x) * width;
-        const score = Math.min(nearest, edgeRoom);
-        if (!best || score > best.score) best = { x, ground, crownY, radius: crownRadius, score };
-      }
-      visibleX.set(memory.id, best.x);
-      visibleGround.set(memory.id, best.ground);
-      placed.push(best);
-    });
+  if (visibleMemories.length === 1) {
+    visibleX.set(visibleMemories[0].id, .5);
+    visibleGround.set(visibleMemories[0].id, .7);
     return;
   }
-  const ordered = [...visibleMemories].sort((a, b) => a.x - b.x);
-  if (ordered.length === 1) {
-    visibleX.set(ordered[0].id, .5);
-    visibleGround.set(ordered[0].id, .72);
-    return;
-  }
-  ordered.forEach((memory, index) => {
-    const evenPosition = .1 + index / (ordered.length - 1) * .8;
-    const jitter = Math.sin(hashText(memory.id) * .001) * Math.min(.012, .12 / ordered.length);
-    visibleX.set(memory.id, Math.max(.075, Math.min(.925, evenPosition + jitter)));
-    visibleGround.set(memory.id, .68 + (stableUnit(`${memory.id}-day-y`) - .5) * .2);
+  const width = Math.max(320, canvas.clientWidth);
+  const height = Math.max(360, canvas.clientHeight);
+  const placed = [];
+  const ordered = [...visibleMemories].sort((a, b) => hashText(a.id) - hashText(b.id));
+  const scaleBoost = selectedDate ? 1.34 : 1.15;
+  const groundStart = selectedDate ? .54 : .49;
+  const groundSpan = selectedDate ? .34 : .41;
+  ordered.forEach(memory => {
+    const scale = (.48 + memory.depth * .48) * scaleBoost;
+    const crownRadius = (3.35 + memory.depth * 1.3) * scale;
+    let best = null;
+    for (let attempt = 0; attempt < 56; attempt += 1) {
+      const x = .055 + stableUnit(`${memory.id}-x-${attempt}`) * .89;
+      const ground = groundStart + stableUnit(`${memory.id}-y-${attempt}`) * groundSpan;
+      const crownY = ground * height - stemHeight(memory, scale);
+      const nearest = placed.reduce((distance, item) => {
+        const dx = (x - item.x) * width;
+        const dy = crownY - item.crownY;
+        const required = crownRadius + item.radius + 4;
+        return Math.min(distance, Math.hypot(dx, dy) - required);
+      }, Number.POSITIVE_INFINITY);
+      const edgeRoom = Math.min(x - .035, .965 - x) * width;
+      const score = Math.min(nearest, edgeRoom);
+      if (!best || score > best.score) best = { x, ground, crownY, radius: crownRadius, score };
+    }
+    visibleX.set(memory.id, best.x);
+    visibleGround.set(memory.id, best.ground);
+    placed.push(best);
   });
 }
 
