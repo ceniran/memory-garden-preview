@@ -7,6 +7,11 @@ const TYPES = {
   reflection: { color: '#b59cda', label: '反思' }
 };
 
+const FLOWER_COLORS = [
+  '#f3a7bb', '#e9a48a', '#efc76d', '#d8cf78', '#9bc79f',
+  '#87c5bd', '#86b8dc', '#9eaee0', '#b49ed9', '#d5a5cf'
+];
+
 const SEASONS = {
   winter: { skyTop: [248,250,251], skyBottom: [229,237,240], fog: [154,184,189], rain: [79,126,141], wet: [96,135,137], gravity: .9, rainWidth: .86 },
   spring: { skyTop: [251,252,247], skyBottom: [232,243,233], fog: [104,174,119], rain: [55,132,86], wet: [73,137,91], gravity: 1, rainWidth: 1 },
@@ -33,6 +38,7 @@ let seed = 20260920;
 let memories = [];
 let visibleMemories = [];
 let visibleX = new Map();
+let visibleGround = new Map();
 let growthEvents = [];
 let grassTufts = [];
 let selectedDate = null;
@@ -122,6 +128,14 @@ function hashText(value) {
     hash = Math.imul(hash, 16777619);
   }
   return hash >>> 0;
+}
+
+function stableUnit(value) {
+  return hashText(value) / 4294967295;
+}
+
+function flowerColor(memory) {
+  return FLOWER_COLORS[hashText(`${memory.id}-color`) % FLOWER_COLORS.length];
 }
 
 function makeRealMemories(items) {
@@ -215,46 +229,47 @@ function stemHeight(memory, scale) {
 
 function layoutVisibleMemories() {
   visibleX = new Map();
+  visibleGround = new Map();
   if (!selectedDate) {
-    visibleMemories.forEach(memory => visibleX.set(memory.id, memory.x));
     const width = Math.max(320, canvas.clientWidth);
     const height = Math.max(360, canvas.clientHeight);
-    for (let pass = 0; pass < 40; pass += 1) {
-      for (let left = 0; left < visibleMemories.length; left += 1) {
-        for (let right = left + 1; right < visibleMemories.length; right += 1) {
-          const first = visibleMemories[left];
-          const second = visibleMemories[right];
-          const firstScale = (.48 + first.depth * .48) * 1.15;
-          const secondScale = (.48 + second.depth * .48) * 1.15;
-          const firstY = flowerGround(first, height) - stemHeight(first, firstScale);
-          const secondY = flowerGround(second, height) - stemHeight(second, secondScale);
-          const clearance = (3.35 + first.depth * 1.3) * firstScale
-            + (3.35 + second.depth * 1.3) * secondScale + 2;
-          const verticalDistance = Math.abs(firstY - secondY);
-          if (verticalDistance >= clearance) continue;
-          const requiredGap = Math.sqrt(clearance ** 2 - verticalDistance ** 2) / width;
-          const firstX = visibleX.get(first.id);
-          const secondX = visibleX.get(second.id);
-          const distance = Math.abs(firstX - secondX);
-          if (distance >= requiredGap) continue;
-          const direction = firstX === secondX ? (hashText(first.id) < hashText(second.id) ? -1 : 1) : Math.sign(firstX - secondX);
-          const shift = (requiredGap - distance) * .52;
-          visibleX.set(first.id, Math.max(.04, Math.min(.96, firstX + direction * shift)));
-          visibleX.set(second.id, Math.max(.04, Math.min(.96, secondX - direction * shift)));
-        }
+    const placed = [];
+    const ordered = [...visibleMemories].sort((a, b) => hashText(a.id) - hashText(b.id));
+    ordered.forEach(memory => {
+      const scale = (.48 + memory.depth * .48) * 1.15;
+      const crownRadius = (3.35 + memory.depth * 1.3) * scale;
+      let best = null;
+      for (let attempt = 0; attempt < 48; attempt += 1) {
+        const x = .055 + stableUnit(`${memory.id}-x-${attempt}`) * .89;
+        const ground = .49 + stableUnit(`${memory.id}-y-${attempt}`) * .41;
+        const crownY = ground * height - stemHeight(memory, scale);
+        const nearest = placed.reduce((distance, item) => {
+          const dx = (x - item.x) * width;
+          const dy = crownY - item.crownY;
+          const required = crownRadius + item.radius + 4;
+          return Math.min(distance, Math.hypot(dx, dy) - required);
+        }, Number.POSITIVE_INFINITY);
+        const edgeRoom = Math.min(x - .035, .965 - x) * width;
+        const score = Math.min(nearest, edgeRoom);
+        if (!best || score > best.score) best = { x, ground, crownY, radius: crownRadius, score };
       }
-    }
+      visibleX.set(memory.id, best.x);
+      visibleGround.set(memory.id, best.ground);
+      placed.push(best);
+    });
     return;
   }
   const ordered = [...visibleMemories].sort((a, b) => a.x - b.x);
   if (ordered.length === 1) {
     visibleX.set(ordered[0].id, .5);
+    visibleGround.set(ordered[0].id, .72);
     return;
   }
   ordered.forEach((memory, index) => {
     const evenPosition = .1 + index / (ordered.length - 1) * .8;
     const jitter = Math.sin(hashText(memory.id) * .001) * Math.min(.012, .12 / ordered.length);
     visibleX.set(memory.id, Math.max(.075, Math.min(.925, evenPosition + jitter)));
+    visibleGround.set(memory.id, .68 + (stableUnit(`${memory.id}-day-y`) - .5) * .2);
   });
 }
 
@@ -386,7 +401,7 @@ function drawGrass(width, height, elapsed) {
     const flowerProgress = growthProgress(tuft.memory, height, elapsed);
     const grassProgress = Math.min(1, Math.max(0, (flowerProgress - .58) / .42));
     if (!grassProgress) return;
-    const ground = height * (.57 + tuft.depth * .3);
+    const ground = flowerGround(tuft.memory, height);
     const breeze = reducedMotion ? 0 : Math.sin(frame * .011 + tuft.phase) * (.45 + tuft.depth * .5);
     const densityAlpha = .48 + tuft.density * .52;
     context.strokeStyle = `rgba(55, 117, 68, ${grassProgress * densityAlpha * (.13 + tuft.depth * .27)})`;
@@ -562,7 +577,8 @@ function drawLocalHaze(width, height, elapsed) {
 }
 
 function flowerGround(memory, height) {
-  return height * (.57 + memory.depth * .3) + Math.sin(memory.sway * 2.1) * (3 + memory.depth * 9);
+  const ground = visibleGround.get(memory.id) ?? (.57 + memory.depth * .3);
+  return height * ground + Math.sin(memory.sway * 2.1) * (2 + memory.depth * 5);
 }
 
 function drawRipple(x, ground, age) {
@@ -672,7 +688,7 @@ function draw(now) {
     const localGround = flowerGround(memory, height);
     const progress = growthProgress(memory, height, elapsed);
     const flowerHeight = stemHeight(memory, scale);
-    flowerPath(x, localGround, flowerHeight, TYPES[memory.type].color, memory.sway,
+    flowerPath(x, localGround, flowerHeight, flowerColor(memory), memory.sway,
       highlighted, progress, scale, memory.leafCount, depth, memory.flowerStyle);
     context.restore();
   });
