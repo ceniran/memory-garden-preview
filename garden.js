@@ -258,12 +258,12 @@ function layoutVisibleMemories() {
     const depth = perspectiveDepth(memory);
     const scale = (.34 + depth * .72) * scaleBoost;
     const crownRadius = (3.35 + depth * 1.3) * scale;
-    const groundBase = .48 + depth * .4;
-    const groundJitter = selectedDate ? .06 : .05;
+    const groundBase = .52 + depth * .33;
+    const groundJitter = selectedDate ? .055 : .045;
     let best = null;
     for (let attempt = 0; attempt < 56; attempt += 1) {
-      const x = .055 + stableUnit(`${memory.id}-x-${attempt}`) * .89;
-      const ground = Math.max(.47, Math.min(.92,
+      const x = .11 + stableUnit(`${memory.id}-x-${attempt}`) * .78;
+      const ground = Math.max(.5, Math.min(.88,
         groundBase + (stableUnit(`${memory.id}-y-${attempt}`) - .5) * groundJitter * 2
       ));
       const crownY = ground * height - stemHeight(memory, scale);
@@ -273,7 +273,7 @@ function layoutVisibleMemories() {
         const required = crownRadius + item.radius + 4;
         return Math.min(distance, Math.hypot(dx, dy) - required);
       }, Number.POSITIVE_INFINITY);
-      const edgeRoom = Math.min(x - .035, .965 - x) * width;
+      const edgeRoom = Math.min(x - .09, .91 - x) * width;
       const score = Math.min(nearest, edgeRoom);
       if (!best || score > best.score) best = { x, ground, crownY, radius: crownRadius, score };
     }
@@ -694,7 +694,7 @@ function draw(now) {
     const depth = perspectiveDepth(memory);
     const scale = (.34 + depth * .72) * (selectedDate ? 1.34 : 1.15);
     context.save();
-    context.globalAlpha = highlighted ? 1 : .12 + depth * .84;
+    context.globalAlpha = highlighted ? 1 : .38 + depth * .6;
     const x = memoryX(memory) * width;
     const localGround = flowerGround(memory, height);
     const progress = growthProgress(memory, height, elapsed);
