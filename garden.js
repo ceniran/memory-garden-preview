@@ -39,6 +39,7 @@ let memories = [];
 let visibleMemories = [];
 let visibleX = new Map();
 let visibleGround = new Map();
+let visibleDepth = new Map();
 let growthEvents = [];
 let grassTufts = [];
 let selectedDate = null;
@@ -222,6 +223,10 @@ function memoryX(memory) {
   return visibleX.get(memory.id) ?? memory.x;
 }
 
+function perspectiveDepth(memory) {
+  return visibleDepth.get(memory.id) ?? memory.depth;
+}
+
 function stemHeight(memory, scale) {
   const variation = .76 + (hashText(`${memory.id}-stem`) % 1000) / 999 * .58;
   return (7 + memory.weight * 17) * scale * variation;
@@ -230,6 +235,15 @@ function stemHeight(memory, scale) {
 function layoutVisibleMemories() {
   visibleX = new Map();
   visibleGround = new Map();
+  visibleDepth = new Map();
+  const depths = visibleMemories.map(memory => memory.depth);
+  const minimumDepth = Math.min(...depths);
+  const maximumDepth = Math.max(...depths);
+  const depthSpan = maximumDepth - minimumDepth;
+  visibleMemories.forEach(memory => {
+    const normalized = depthSpan > .02 ? (memory.depth - minimumDepth) / depthSpan : .5;
+    visibleDepth.set(memory.id, .08 + normalized * .92);
+  });
   if (visibleMemories.length === 1) {
     visibleX.set(visibleMemories[0].id, .5);
     visibleGround.set(visibleMemories[0].id, .7);
@@ -241,9 +255,10 @@ function layoutVisibleMemories() {
   const ordered = [...visibleMemories].sort((a, b) => hashText(a.id) - hashText(b.id));
   const scaleBoost = selectedDate ? 1.34 : 1.15;
   ordered.forEach(memory => {
-    const scale = (.48 + memory.depth * .48) * scaleBoost;
-    const crownRadius = (3.35 + memory.depth * 1.3) * scale;
-    const groundBase = .52 + memory.depth * .35;
+    const depth = perspectiveDepth(memory);
+    const scale = (.34 + depth * .72) * scaleBoost;
+    const crownRadius = (3.35 + depth * 1.3) * scale;
+    const groundBase = .48 + depth * .4;
     const groundJitter = selectedDate ? .06 : .05;
     let best = null;
     for (let attempt = 0; attempt < 56; attempt += 1) {
@@ -573,7 +588,8 @@ function drawLocalHaze(width, height, elapsed) {
 
 function flowerGround(memory, height) {
   const ground = visibleGround.get(memory.id) ?? (.57 + memory.depth * .3);
-  return height * ground + Math.sin(memory.sway * 2.1) * (2 + memory.depth * 5);
+  const depth = perspectiveDepth(memory);
+  return height * ground + Math.sin(memory.sway * 2.1) * (2 + depth * 5);
 }
 
 function drawRipple(x, ground, age) {
@@ -675,10 +691,10 @@ function draw(now) {
 
   visibleMemories.forEach(memory => {
     const highlighted = selectedDate === memory.date;
-    const depth = memory.depth;
-    const scale = (.48 + depth * .48) * (selectedDate ? 1.34 : 1.15);
+    const depth = perspectiveDepth(memory);
+    const scale = (.34 + depth * .72) * (selectedDate ? 1.34 : 1.15);
     context.save();
-    context.globalAlpha = highlighted ? 1 : .22 + depth * .68;
+    context.globalAlpha = highlighted ? 1 : .12 + depth * .84;
     const x = memoryX(memory) * width;
     const localGround = flowerGround(memory, height);
     const progress = growthProgress(memory, height, elapsed);
